@@ -1,0 +1,291 @@
+[
+  {
+    "name": "DbConfig",
+    "data": [
+      {
+        "name": "URL",
+        "data": "jdbc:firebirdsql://localhost:3050/"
+      },
+      {
+        "name": "DATABASE_NAME",
+        "data": "C:\\Users\\juang\\Informatica\\2DAM\\Interfaz\\ImportadorProductos\\EMPRE001.GDB"
+      },
+      {
+        "name": "USER",
+        "data": "SYSDBA"
+      },
+      {
+        "name": "PASSWORD",
+        "data": "masterkey"
+      }
+    ]
+  },
+  {
+    "name": "Incrementos",
+    "data": [
+      {
+        "name": "articulo",
+        "type": "int",
+        "data": 3.0
+      }
+    ]
+  },
+  {
+    "name": "Tablas",
+    "data": [
+      {
+        "name": "familias",
+        "data": [
+          {
+            "name": "CODIGO",
+            "type": "int"
+          },
+          {
+            "name": "IDENTIFICACION",
+            "type": "str"
+          },
+          {
+            "name": "NOMBRE",
+            "type": "str"
+          },
+          {
+            "name": "MARGEN",
+            "type": "fl"
+          },
+          {
+            "name": "LIBRE1",
+            "type": "str"
+          },
+          {
+            "name": "LIBRE2",
+            "type": "str"
+          },
+          {
+            "name": "COMENTARIO",
+            "type": "str"
+          },
+          {
+            "name": "IMAGEN",
+            "type": "str"
+          },
+          {
+            "name": "US_ALTA",
+            "type": "int"
+          },
+          {
+            "name": "FECHA_ALTA",
+            "type": "dateTime"
+          },
+          {
+            "name": "US_MOD",
+            "type": "int"
+          },
+          {
+            "name": "FECHA_MOD",
+            "type": "dateTime"
+          },
+          {
+            "name": "COLOR",
+            "type": "int"
+          },
+          {
+            "name": "FUENTE",
+            "type": "str"
+          },
+          {
+            "name": "COLOR_FUENTE",
+            "type": "int"
+          },
+          {
+            "name": "TAMANO",
+            "type": "int"
+          },
+          {
+            "name": "ESTILO",
+            "type": "int"
+          },
+          {
+            "name": "IMPRESORA",
+            "type": "int"
+          },
+          {
+            "name": "VARIACIONES",
+            "type": "str"
+          },
+          {
+            "name": "DEPARTAMENTO",
+            "type": "str"
+          },
+          {
+            "name": "IMPRESORA2",
+            "type": "int"
+          },
+          {
+            "name": "IMPRESORA3",
+            "type": "int"
+          },
+          {
+            "name": "PREDEFINIDO",
+            "type": "int"
+          },
+          {
+            "name": "CREDITO",
+            "type": "int"
+          },
+          {
+            "name": "ORDEN",
+            "type": "int"
+          },
+          {
+            "name": "COLORFAMILIA",
+            "type": "int"
+          },
+          {
+            "name": "MULTIPLO_PUNTOS",
+            "type": "str"
+          },
+          {
+            "name": "MODOPUB",
+            "type": "int"
+          },
+          {
+            "name": "DE_PRESTAMO",
+            "type": "int"
+          },
+          {
+            "name": "DIAS_PRESTAMO",
+            "type": "int"
+          },
+          {
+            "name": "IMPORTE_SANCION",
+            "type": "str"
+          },
+          {
+            "name": "MULTIDIA",
+            "type": "int"
+          },
+          {
+            "name": "NUMERO_DIAS_PRESTAMO1",
+            "type": "int"
+          },
+          {
+            "name": "IMPORTE_NUMERO_DIAS1",
+            "type": "str"
+          },
+          {
+            "name": "NUMERO_DIAS_PRESTAMO2",
+            "type": "int"
+          },
+          {
+            "name": "IMPORTE_NUMERO_DIAS2",
+            "type": "str"
+          },
+          {
+            "name": "NUMERO_DIAS_PRESTAMO3",
+            "type": "int"
+          },
+          {
+            "name": "IMPORTE_NUMERO_DIAS3",
+            "type": "str"
+          },
+          {
+            "name": "TIPO_TRABAJO",
+            "type": "int"
+          },
+          {
+            "name": "ALQUILER",
+            "type": "int"
+          },
+          {
+            "name": "GARANTIAPROPIA",
+            "type": "int"
+          },
+          {
+            "name": "DE_CUPON",
+            "type": "int"
+          },
+          {
+            "name": "TABLA_TELA",
+            "type": "int"
+          },
+          {
+            "name": "COBRO_POR_CUPON",
+            "type": "int"
+          },
+          {
+            "name": "MOSTRAR",
+            "type": "int"
+          },
+          {
+            "name": "USAR_LOTE",
+            "type": "int"
+          },
+          {
+            "name": "IMPRESORA4",
+            "type": "int"
+          },
+          {
+            "name": "IMPRESORA5",
+            "type": "int"
+          },
+          {
+            "name": "IMPRESORA6",
+            "type": "int"
+          },
+          {
+            "name": "TIPO_BOTELLA",
+            "type": "str"
+          },
+          {
+            "name": "ROPERO",
+            "type": "int"
+          },
+          {
+            "name": "CONTAPA",
+            "type": "int"
+          },
+          {
+            "name": "PANTALLA_STOCK",
+            "type": "str"
+          },
+          {
+            "name": "VACIO",
+            "type": "str"
+          },
+          {
+            "name": "SALDOXEURO",
+            "type": "str"
+          },
+          {
+            "name": "SECCION",
+            "type": "int"
+          },
+          {
+            "name": "ALMAZARA",
+            "type": "int"
+          },
+          {
+            "name": "RELACION_AENA",
+            "type": "int"
+          },
+          {
+            "name": "CONTROL_NUMSERIE",
+            "type": "int"
+          },
+          {
+            "name": "MATERIAL",
+            "type": "int"
+          },
+          {
+            "name": "FAMILIA_AGRUPACION",
+            "type": "int"
+          },
+          {
+            "name": "ENVASES",
+            "type": "int"
+          }
+        ]
+      }
+    ]
+  }
+]

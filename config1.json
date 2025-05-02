@@ -1,0 +1,28 @@
+[
+  {
+    "name": "DbConfig",
+    "data": [
+      {
+        "name": "URL",
+        "type": "str",
+        "data": "jdbc:mysql://localhost:3306/"
+      },
+      {
+        "name": "DATABASE_NAME",
+        "type": "str",
+        "data": "tiendaonline"
+      },
+      {
+        "name": "USER",
+        "type": "str",
+        "data": "root"
+      },
+      {
+        "name": "PASSWORD",
+        "type": "str",
+        "data": ""
+      }
+    ]
+  }
+
+]
