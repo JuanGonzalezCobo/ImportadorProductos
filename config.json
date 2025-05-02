@@ -8,7 +8,7 @@
       },
       {
         "name": "DATABASE_NAME",
-        "data": "C:\\Users\\juang\\Informatica\\2DAM\\Interfaz\\ImportadorProductos\\EMPRE001.GDB"
+        "data": "C:\\Users\\juang\\Informatica\\2DAM\\Interfaz\\ImportadorProductos\\src\\main\\db\\EMPRE001.GDB"
       },
       {
         "name": "USER",
