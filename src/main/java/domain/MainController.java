@@ -10,6 +10,7 @@ import data.service.config.ConfigFileManager;
 import data.service.db.DataBaseConnection;
 import data.service.excel.ExcelFileManager;
 
+import java.sql.Types;
 import java.util.*;
 
 public class MainController {
@@ -76,7 +77,6 @@ public class MainController {
         REPOSITORY.setFOREIGN_KEY_HEADERS_FROM_EXCEL(setExcelsHeaderForeignKeys(dataFromExcel));
         REPOSITORY.setINNER_DATA_HEADERS_FROM_EXCEL(setExcelHeaderInnerConnections(dataFromExcel));
         REPOSITORY.setDATA_FROM_EXCEL(setExcelsData(dataFromExcel));
-
     }
 
     private List<String> setExcelsColumn(List<List<Object>> data) {
@@ -87,7 +87,7 @@ public class MainController {
         return columns;
     }
 
-    private Map<String, String[]> setExcelsHeaderForeignKeys(List<List<Object>> data) { //Cambiarle el nombre
+    private Map<String, String[]> setExcelsHeaderForeignKeys(List<List<Object>> data) {
         Map<String, String[]> header = new HashMap<>();
 
         for (int i = 0; i < data.getFirst().size(); i++) {
@@ -113,8 +113,8 @@ public class MainController {
                 for (int j = 0; j < (EXCEL_FILE_MANAGER.headersRow - 3) / 2; j++) {
                     if (data.get(EXCEL_FILE_MANAGER.headersRow - 4 - j * 2).get(i) == null) continue;
                     innerConnections.add(new String[]{
-                                    (String) data.get(EXCEL_FILE_MANAGER.headersRow - 4 - j * 2).get(i),
-                                    (String) data.get(EXCEL_FILE_MANAGER.headersRow - 5 - j * 2).get(i)
+                            (String) data.get(EXCEL_FILE_MANAGER.headersRow - 4 - j * 2).get(i), //Nombre de la columna en excel
+                            (String) data.get(EXCEL_FILE_MANAGER.headersRow - 5 - j * 2).get(i)  //Nombre de la columna en la tabla referenciada
                             }
                     );
                 }
@@ -147,14 +147,17 @@ public class MainController {
     //*************************************************************************
 
     private void mainInsertInDB(String tableName) {
-        Map<String, Object> dataRow = new HashMap<>();
+        Map<String, Object> dataRow;
+
+
+
         while ((dataRow = REPOSITORY.getDATA_FROM_EXCEL().poll()) != null) {
 
             DATA_TO_INSERT_INTO_DB.clear();
             Map<String, String[]> excelHeaderForeignKey = REPOSITORY.getFOREIGN_KEY_HEADERS_FROM_EXCEL();
             Map<String, Data[]> config = REPOSITORY.getDEFAULT_TABLES_DATA_FROM_CONFIG();
 
-            List<Data> dataPerTableConfig = Arrays.stream(config.get(tableName)).toList();
+            List<Data> dataPerTableConfig = new ArrayList<>(Arrays.stream(config.get(tableName)).toList());
 
             for (int i = 0; i < REPOSITORY.getCOLUMNS_EXCEL().size(); i++) {
                 String columnName = REPOSITORY.getCOLUMNS_EXCEL().get(i);
@@ -162,25 +165,34 @@ public class MainController {
                 String[] headerPerExcelColumn = excelHeaderForeignKey.get(columnName);
 
                 if (dataRow.get(columnName) == null) {
+
+                    //ESTA VACÍO EL CAMPO EN EL EXCEL, BUSCAMOS EN EL CONFIG
+
                     Data columnInfoFromConfig = dataPerTableConfig.stream()
                             .filter(data -> data.getName().equals(columnName))
                             .findFirst()
                             .orElse(null);
 
                     if (columnInfoFromConfig == null) continue;
-                    //Hacer aqui lo del incremento. Con un condicional. Mirar que en la tabla existe el valor, y luego mirar que se pueda incrementar.
 
+                    //Hacer aqui lo del incremento. Con un condicional
+                    //Y se quita lo que tenemos abajo
+
+                    /*************************************/
                     DATA_TO_INSERT_INTO_DB.put(columnName,
                             new Object[]{
                                     columnInfoFromConfig.getType(),
                                     columnInfoFromConfig.getData()
                             }
                     );
+                    /*************************************/
 
-                    //Aqui lo borramos para, al final, comprobar valores que tenga en la configuracion. TODO HAY QUE CAMBIARLO PARA QUE SI APARECE EN EL EXCEL SE BORRE TBN
+                    // Aqui lo borramos para, al final, comprobar valores que tenga en la configuracion.
+                    // TODO HAY QUE CAMBIARLO PARA QUE SI APARECE EN EL EXCEL SE BORRE TBN
                     dataPerTableConfig.remove(columnInfoFromConfig);
-/*
+
                 } else {
+
                     if (headerPerExcelColumn[0] == null) {
                         DATA_TO_INSERT_INTO_DB.put(columnName, new Object[]{dataRow[i]});
                     } else {
@@ -207,7 +219,7 @@ public class MainController {
             }
         }
     }
-
+/*
     private int foreignOperation(Object[] data, String tableName, String pk, String columnName) {
         if (!DB_CONNECTION.dataExistsInForeignTable(tableName, columnName, data)) {
 
@@ -234,8 +246,6 @@ public class MainController {
 
     }
     */
-                }
-            }
-        }
-    }
+
+
 }
