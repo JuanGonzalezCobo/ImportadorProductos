@@ -1,8 +1,7 @@
 package data.repository;
 
-import data.model.Data;
-import data.model.DbData;
-import data.model.TableData;
+import data.model.*;
+import data.service.config.ClassType;
 
 import java.util.HashMap;
 import java.util.List;
@@ -22,7 +21,7 @@ public class Repository {
 
     private final Map<String, Object> SECTIONS_CONFIG;
 
-    private Map<String, Object[]> DEFAULT_INCREASE_FROM_CONFIG;
+    private Map<String, IncreaseData> DEFAULT_INCREASE_FROM_CONFIG;
     private Map<String, Data[]> DEFAULT_TABLES_DATA_FROM_CONFIG;
 
     //***************
@@ -33,7 +32,7 @@ public class Repository {
 
     private Map<String, String[]> FOREIGN_KEY_HEADERS_FROM_EXCEL;       //Estos son aquellos que tienen un foreign key
     private Map<String, List<String[]>> INNER_DATA_HEADERS_FROM_EXCEL;  //Estos son aquellos que necesitan de otra columna para funcionar
-    private Queue<Map<String, Object>> DATA_FROM_EXCEL;
+    private Queue<Map<String, Object[]>> DATA_FROM_EXCEL;
 
     //*************************************************************************
     //* CONSTRUCTOR                                                           *
@@ -51,10 +50,10 @@ public class Repository {
     //* SETTERS     *
     //***************
 
-    private Map<String, Object[]> setIncreaseConfig() {
-        Map<String, Object[]> increaseConfig = new HashMap<>();
-        for (Data increaseData : (Data[]) SECTIONS_CONFIG.get("Incrementos")) {
-            increaseConfig.put(increaseData.getName(), new Object[]{increaseData.getType(), increaseData.getData()});
+    private Map<String, IncreaseData> setIncreaseConfig() {
+        Map<String, IncreaseData> increaseConfig = new HashMap<>();
+        for (IncreaseData increaseData : (IncreaseData[]) SECTIONS_CONFIG.get("Incrementos")) {
+            increaseConfig.put(increaseData.getName(), increaseData);
         }
         return increaseConfig;
     }
@@ -62,8 +61,12 @@ public class Repository {
     private Map<String, Data[]> setTablesConfig() {
         Map<String, Data[]> tablesConfig = new HashMap<>();
 
-        for (TableData increaseData : (TableData[]) SECTIONS_CONFIG.get("Tablas")) {
-            tablesConfig.put(increaseData.getName(), increaseData.getData());
+        for (TableData eachTableData : (TableData[]) SECTIONS_CONFIG.get("Tablas")) {
+            for (Data eachColumn : eachTableData.getData()) {
+                String type = (String) eachColumn.getType();
+                eachColumn.setType(ClassType.getClassType(type));
+            }
+            tablesConfig.put(eachTableData.getName(), eachTableData.getData());
         }
 
         return tablesConfig;

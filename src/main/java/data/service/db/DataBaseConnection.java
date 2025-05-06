@@ -1,6 +1,5 @@
 package data.service.db;
 
-import data.model.Data;
 import data.service.db.model.Column;
 import lombok.Getter;
 
@@ -131,11 +130,10 @@ public class DataBaseConnection {
             stmt.setString(2, columnName);
             switch (Integer.parseInt(value[0].toString())) {
                 case Types.FLOAT, Types.DOUBLE, Types.DECIMAL -> stmt.setFloat(3, (Float) value[1]);
-                case Types.INTEGER, Types.BIGINT, Types.SMALLINT, Types.TINYINT ->
-                        stmt.setInt(3, (Integer)  value[1]);
-                case Types.TIMESTAMP, Types.DATE -> stmt.setTimestamp(3, (Timestamp)  value[1]);
-                case Types.BOOLEAN -> stmt.setBoolean(3, (Boolean)  value[1]);
-                default -> stmt.setString(3,  value[1].toString());
+                case Types.INTEGER, Types.BIGINT, Types.SMALLINT, Types.TINYINT -> stmt.setInt(3, (Integer) value[1]);
+                case Types.TIMESTAMP, Types.DATE -> stmt.setTimestamp(3, (Timestamp) value[1]);
+                case Types.BOOLEAN -> stmt.setBoolean(3, (Boolean) value[1]);
+                default -> stmt.setString(3, value[1].toString());
             }
 
             boolean returnValue = false;
@@ -151,27 +149,31 @@ public class DataBaseConnection {
     }
 
     public int[] getIdentifierColumn(Object data, String tableName, String pk, String columnName) {
-        final String SQL = " SELECT ? FROM ? WHERE ? = ?";
+        final StringBuilder SQL = new StringBuilder("SELECT " + pk + " FROM " + tableName + " WHERE " + columnName + " = ");
 
         Column[] columns = getAllColumns(tableName);
         Column column = Arrays.stream(columns)
                 .filter(oneColumn -> Objects.equals(oneColumn.getColumnName(), columnName)).findFirst()
                 .orElse(null);
 
-        try (PreparedStatement stmt = connection.prepareStatement(SQL)) {
-            stmt.setString(1, pk);
-            stmt.setString(2, tableName);
-            stmt.setString(3, columnName);
+        try (Statement stmt = connection.createStatement()) {
+
+
             switch (Integer.parseInt(Objects.requireNonNull(column).getType())) {
-                case Types.FLOAT, Types.DOUBLE, Types.DECIMAL -> stmt.setFloat(4, (Float) data);
-                case Types.INTEGER, Types.BIGINT, Types.SMALLINT, Types.TINYINT -> stmt.setInt(4, (Integer) data);
-                case Types.TIMESTAMP, Types.DATE -> stmt.setTimestamp(4, (Timestamp) data);
-                case Types.BOOLEAN -> stmt.setBoolean(4, (Boolean) data);
-                default -> stmt.setString(4, data.toString());
+                case Types.FLOAT,
+                     Types.DOUBLE,
+                     Types.DECIMAL,
+                     Types.INTEGER,
+                     Types.BIGINT,
+                     Types.SMALLINT,
+                     Types.TINYINT,
+                     Types.BOOLEAN -> SQL.append(data);
+                case Types.VARCHAR -> SQL.append(data.toString().toUpperCase());
+                default -> SQL.append("'").append(data.toString()).append("'");
             }
 
             int[] returnValue = new int[]{0, -1};
-            ResultSet rs = stmt.executeQuery();
+            ResultSet rs = stmt.executeQuery(SQL.toString());
             if (rs.next()) {
                 returnValue = new int[]{1, rs.getInt(1)};
             }
@@ -183,14 +185,30 @@ public class DataBaseConnection {
         }
     }
 
-    public int[] increaseCodeTable(int codeToIncrease) {
-        final String SQL = "SELECT VALOR FROM CODIGOS WHERE CODIGOS.CODIGO = ?";
+    public boolean setIncreaseThroughInt(int codeToIncrease) {
+        final String SQL = "UPDATE CODIGOS SET VALOR = (VALOR + 1) WHERE CODIGOS.CODIGO = ";
 
-        try (PreparedStatement stmt = connection.prepareStatement(SQL)) {
-            stmt.setInt(1, codeToIncrease);
+        try (Statement stmt = connection.createStatement()) {
+
+            return (stmt.executeUpdate(SQL + codeToIncrease)) != 0;
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+            return false;
+        }
+    }
+
+    public int[] setIncreaseThroughGenerator(String generator) {
+        int[] returnValue = new int[]{0, -1};
+        return new int[]{0, -1};
+    }
+
+    public int[] getIncreaseCodeInDB(int codeToIncrease) {
+        final String SQL = "SELECT VALOR FROM CODIGOS WHERE CODIGOS.CODIGO = ";
+
+        try (Statement stmt = connection.createStatement()) {
 
             int[] returnValue = new int[]{0, -1};
-            ResultSet rs = stmt.executeQuery();
+            ResultSet rs = stmt.executeQuery(SQL + codeToIncrease);
             if (rs.next()) {
                 returnValue = new int[]{1, rs.getInt(1)};
             }
@@ -200,5 +218,37 @@ public class DataBaseConnection {
             System.out.println(e.getMessage());
             return null;
         }
+    }
+
+    public void insertNewRegistry(String tableName, Map<String, Object[]> values) {
+        if (values.isEmpty()) return;
+
+        final StringBuilder SQL = new StringBuilder("INSERT INTO " + tableName + " ( ");
+        for (String key : values.keySet()) {
+            SQL.append(key).append(", ");
+        }
+        SQL.append(") VALUES ( ");
+
+        for (Object[] value : values.values()) {
+            switch ((Integer) value[0]) {
+                case Types.FLOAT,
+                     Types.DOUBLE,
+                     Types.DECIMAL,
+                     Types.INTEGER,
+                     Types.BIGINT,
+                     Types.SMALLINT,
+                     Types.TINYINT,
+                     Types.BOOLEAN -> SQL.append(value[1]).append(",");
+                default -> SQL.append("'").append(value[1].toString()).append("', ");
+            }
+        }
+        SQL.append(" ) ");
+
+        try (Statement statement = connection.createStatement()) {
+            statement.executeUpdate(SQL.toString().replace(", )", " )"));
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+
     }
 }

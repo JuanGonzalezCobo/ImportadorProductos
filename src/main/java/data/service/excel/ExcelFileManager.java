@@ -11,6 +11,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -68,8 +69,8 @@ public class ExcelFileManager {
         }
     }
 
-    public List<List<Object>> readFile() {
-        List<List<Object>> dataFromFile = new ArrayList<>();
+    public List<List<Object[]>> readFile() {
+        List<List<Object[]>> dataFromFile = new ArrayList<>();
 
         try (FileInputStream fis = new FileInputStream(getFileURL());
              XSSFWorkbook wb = new XSSFWorkbook(fis)) {
@@ -86,7 +87,7 @@ public class ExcelFileManager {
 
             for (Row row : sheet) {
 
-                List<Object> rowData = new ArrayList<>();
+                List<Object[]> rowData = new ArrayList<>();
 
                 for (int cellNum = 0; cellNum < sheet.getRow(headersRow).getPhysicalNumberOfCells(); cellNum++) {
 
@@ -95,20 +96,32 @@ public class ExcelFileManager {
                     if (cell == null) rowData.add(null);
                     else switch (cell.getCellType()) {
                         case STRING -> {
-                            rowData.add(cell.getStringCellValue());
+                            rowData.add(new Object[]{
+                                    Types.VARCHAR,
+                                    cell.getStringCellValue().trim().toUpperCase()
+                            });
                         }
                         case NUMERIC -> {
                             if (DateUtil.isCellDateFormatted(cell)) {
-                                rowData.add(cell.getDateCellValue());
+                                rowData.add(new Object[]{
+                                        Types.DATE,
+                                        cell.getDateCellValue()
+                                });
                             } else {
-                                rowData.add(cell.getNumericCellValue());
+                                double value = cell.getNumericCellValue();
+                                rowData.add(new Object[]{
+                                        (value == Math.floor(value)) ? Types.INTEGER : Types.DOUBLE,
+                                        value
+                                });
                             }
                         }
                         case BOOLEAN -> {
-                            rowData.add(cell.getBooleanCellValue());
+                            rowData.add(new Object[]{
+                                    Types.BOOLEAN,
+                                    (cell.getBooleanCellValue()) ? 1 : 0
+                            });
                         }
-                        default -> rowData.add("");
-
+                        default -> rowData.add(null);
                     }
                 }
                 dataFromFile.add(rowData);
@@ -130,7 +143,7 @@ public class ExcelFileManager {
             Sheet sheet = wb.createSheet();
 
             for (int i = 0; i < header.length; i++) {
-                Row row = sheet.createRow(i+1);
+                Row row = sheet.createRow(i + 1);
                 for (int j = 0; j < header[0].length; j++) {
                     Cell cell = row.createCell(j);
                     if (i == 2) {

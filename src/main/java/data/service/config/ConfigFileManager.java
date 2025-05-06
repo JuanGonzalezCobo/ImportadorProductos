@@ -1,10 +1,7 @@
 package data.service.config;
 
 import com.google.gson.*;
-import data.model.Data;
-import data.model.DbData;
-import data.model.Section;
-import data.model.TableData;
+import data.model.*;
 import data.service.db.model.Column;
 
 import java.io.*;
@@ -31,7 +28,7 @@ public class ConfigFileManager {
 
             switch (sectionName) {
                 case "DbConfig" -> configData.put(sectionName, gson.fromJson(dataElement, DbData[].class));
-                case "Incrementos" -> configData.put(sectionName, gson.fromJson(dataElement, Data[].class));
+                case "Incrementos" -> configData.put(sectionName, gson.fromJson(dataElement, IncreaseData[].class));
                 case "Tablas" -> configData.put(sectionName, gson.fromJson(dataElement, TableData[].class));
             }
         }
@@ -87,12 +84,11 @@ public class ConfigFileManager {
         sectionList
                 .add(new Section(
                         "Tablas",
-                        new Data[]{
-                                new Data(tableName,
-                                        null,
+                        new TableData[]{
+                                new TableData(tableName,
                                         newData.toArray(Data[]::new))
-                        })
-                );
+                        }
+                ));
 
         return gson.toJson(sectionList.toArray(Section[]::new));
     }

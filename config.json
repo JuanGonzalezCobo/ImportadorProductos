@@ -8,7 +8,7 @@
       },
       {
         "name": "DATABASE_NAME",
-        "data": "C:\\Users\\juang\\Informatica\\2DAM\\Interfaz\\ImportadorProductos\\src\\main\\db\\EMPRE001.GDB"
+        "data": "C:\\GestionIntersoft\\datos\\EMPRE001.GDB"
       },
       {
         "name": "USER",
@@ -16,7 +16,7 @@
       },
       {
         "name": "PASSWORD",
-        "data": "masterkey"
+        "data": ""
       }
     ]
   },
@@ -26,6 +26,7 @@
       {
         "name": "articulo",
         "type": "int",
+        "column" : "CODIGO",
         "data": 3.0
       }
     ]
@@ -74,7 +75,8 @@
           },
           {
             "name": "FECHA_ALTA",
-            "type": "dateTime"
+            "type": "dateTime",
+            "data": "HOY()"
           },
           {
             "name": "US_MOD",
