@@ -9,7 +9,7 @@ public class ClassType {
         return switch (type) {
             case Types.FLOAT, Types.DOUBLE, Types.DECIMAL -> "fl";
             case Types.INTEGER, Types.BIGINT, Types.SMALLINT, Types.TINYINT -> "int";
-            case Types.TIMESTAMP -> "dateTime";
+            case Types.TIMESTAMP -> "dateTime"; //AHORA
             case Types.DATE -> "date";
             case Types.BOOLEAN -> "bool";
             default -> "str";

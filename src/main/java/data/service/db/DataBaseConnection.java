@@ -158,7 +158,6 @@ public class DataBaseConnection {
 
         try (Statement stmt = connection.createStatement()) {
 
-
             switch (Integer.parseInt(Objects.requireNonNull(column).getType())) {
                 case Types.FLOAT,
                      Types.DOUBLE,
@@ -168,7 +167,6 @@ public class DataBaseConnection {
                      Types.SMALLINT,
                      Types.TINYINT,
                      Types.BOOLEAN -> SQL.append(data);
-                case Types.VARCHAR -> SQL.append(data.toString().toUpperCase());
                 default -> SQL.append("'").append(data.toString()).append("'");
             }
 
@@ -225,7 +223,11 @@ public class DataBaseConnection {
 
         final StringBuilder SQL = new StringBuilder("INSERT INTO " + tableName + " ( ");
         for (String key : values.keySet()) {
-            SQL.append(key).append(", ");
+            SQL.append(key);
+            if (!Objects.equals(key, values.keySet().stream().toList().getLast())) {
+                SQL.append(", ");
+            }
+
         }
         SQL.append(") VALUES ( ");
 
@@ -238,14 +240,18 @@ public class DataBaseConnection {
                      Types.BIGINT,
                      Types.SMALLINT,
                      Types.TINYINT,
-                     Types.BOOLEAN -> SQL.append(value[1]).append(",");
-                default -> SQL.append("'").append(value[1].toString()).append("', ");
+                     Types.BOOLEAN -> SQL.append(value[1]);
+                default -> SQL.append("'").append(value[1].toString()).append("'");
+            }
+
+            if (value != values.values().stream().toList().getLast()) {
+                SQL.append(", ");
             }
         }
         SQL.append(" ) ");
 
         try (Statement statement = connection.createStatement()) {
-            statement.executeUpdate(SQL.toString().replace(", )", " )"));
+            statement.executeUpdate(SQL.toString());
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }

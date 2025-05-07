@@ -51,7 +51,7 @@ public class ConfigFileManager {
         return json.toString();
     }
 
-    public Void unloadConfig(DbData[] dataBaseConfig, Data[] increaseConfig, String tableName, Column[] columnData) {
+    public Void unloadConfig(DbData[] dataBaseConfig, IncreaseData[] increaseConfig, String tableName, Column[] columnData) {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(CONFIG_FILE_NAME))) {
             writer.write(createNewSection(dataBaseConfig, increaseConfig, tableName, columnData));
         } catch (IOException e) {
@@ -60,7 +60,7 @@ public class ConfigFileManager {
         return null;
     }
 
-    private String createNewSection(DbData[] dataBaseConfig, Data[] increaseConfig, String tableName, Column[] columnData) {
+    private String createNewSection(DbData[] dataBaseConfig, IncreaseData[] increaseConfig, String tableName, Column[] columnData) {
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
         List<Section> sectionList = new ArrayList<>();

@@ -13,7 +13,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 public class ExcelFileManager {
 
@@ -23,9 +25,11 @@ public class ExcelFileManager {
     @Getter
     public String fileName;
 
+    private List<Integer> excelColumnsWithHeader;
+
     private CellStyle HEADER_STYLE;
 
-    private void setHeaderStyle(XSSFWorkbook wb) {
+    private void setColumnHeaderStyle(XSSFWorkbook wb) {
         HEADER_STYLE = wb.createCellStyle();
         HEADER_STYLE.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
         HEADER_STYLE.setFillPattern(FillPatternType.SOLID_FOREGROUND);
@@ -72,7 +76,7 @@ public class ExcelFileManager {
     public List<List<Object[]>> readFile() {
         List<List<Object[]>> dataFromFile = new ArrayList<>();
 
-        try (FileInputStream fis = new FileInputStream(getFileURL());
+        try (FileInputStream fis = new FileInputStream("C:\\Users\\Practicas\\Documents\\java\\ImportadorProductos\\src\\main\\myExcel\\articulo.xlsx");
              XSSFWorkbook wb = new XSSFWorkbook(fis)) {
             Sheet sheet = wb.getSheetAt(0);
 
@@ -80,6 +84,15 @@ public class ExcelFileManager {
             for (Row row : sheet) {
                 if (isHeaderRow(row)) {
                     headersRow = row.getRowNum();
+                    ArrayList<Integer> columnsWithHeader = new ArrayList<>();
+                    for (Cell cell : row) {
+                        if (cell == null) continue;
+                        String cellValue = cell.getStringCellValue();
+                        if ((cellValue != null) && (!cellValue.isEmpty())) {
+                            columnsWithHeader.add(cell.getColumnIndex());
+                        }
+                    }
+                    excelColumnsWithHeader = columnsWithHeader.stream().toList();
                     break;
                 }
             }
@@ -89,39 +102,39 @@ public class ExcelFileManager {
 
                 List<Object[]> rowData = new ArrayList<>();
 
-                for (int cellNum = 0; cellNum < sheet.getRow(headersRow).getPhysicalNumberOfCells(); cellNum++) {
+                for (Integer cellNum : excelColumnsWithHeader) {
 
                     Cell cell = row.getCell(cellNum);
 
                     if (cell == null) rowData.add(null);
-                    else switch (cell.getCellType()) {
-                        case STRING -> {
-                            rowData.add(new Object[]{
+                    else {
+                        switch (cell.getCellType()) {
+                            case STRING -> rowData.add(new Object[]{
                                     Types.VARCHAR,
                                     cell.getStringCellValue().trim().toUpperCase()
                             });
-                        }
-                        case NUMERIC -> {
-                            if (DateUtil.isCellDateFormatted(cell)) {
-                                rowData.add(new Object[]{
-                                        Types.DATE,
-                                        cell.getDateCellValue()
-                                });
-                            } else {
-                                double value = cell.getNumericCellValue();
-                                rowData.add(new Object[]{
-                                        (value == Math.floor(value)) ? Types.INTEGER : Types.DOUBLE,
-                                        value
-                                });
-                            }
-                        }
-                        case BOOLEAN -> {
-                            rowData.add(new Object[]{
+
+                            case NUMERIC -> rowData.add(formatCellNumberValue(cell));
+
+                            case BOOLEAN -> rowData.add(new Object[]{
                                     Types.BOOLEAN,
                                     (cell.getBooleanCellValue()) ? 1 : 0
                             });
+
+                            case FORMULA -> {
+                                FormulaEvaluator evaluator = wb.getCreationHelper().createFormulaEvaluator();
+                                CellValue cellValue = evaluator.evaluate(cell);
+                                if (cellValue.getCellType() == CellType.NUMERIC) {
+                                    rowData.add(formatCellNumberValue(cell));
+                                } else {
+                                    rowData.add(new Object[]{
+                                            Types.VARCHAR,
+                                            cellValue.getStringValue()
+                                    });
+                                }
+                            }
+                            default -> rowData.add(null);
                         }
-                        default -> rowData.add(null);
                     }
                 }
                 dataFromFile.add(rowData);
@@ -138,7 +151,7 @@ public class ExcelFileManager {
     public Void writeFile(String fileName, String[][] header) {
         try (FileOutputStream fos = new FileOutputStream(fileName.concat(".xlsx"));
              XSSFWorkbook wb = new XSSFWorkbook()) {
-            setHeaderStyle(wb);
+            setColumnHeaderStyle(wb);
 
             Sheet sheet = wb.createSheet();
 
@@ -163,5 +176,39 @@ public class ExcelFileManager {
             System.out.println(AppConsoleStyle.RED + "[ERROR] No se pudo escribir el archivo" + AppConsoleStyle.RESET);
         }
         return null;
+    }
+
+    private Object[] formatCellNumberValue(Cell cell) {
+        Object[] newValue;
+        if (DateUtil.isCellDateFormatted(cell)) {
+            newValue = new Object[]{
+                    Types.DATE,
+                    cell.getDateCellValue()
+            };
+        } else {
+            DataFormatter dataFormatter = new DataFormatter();
+            String stringCellValue = dataFormatter.formatCellValue(cell);
+            double value = cell.getNumericCellValue();
+
+            try {
+                if (Objects.equals(stringCellValue, String.valueOf(value))) {
+                    newValue = new Object[]{
+                            (value == Math.floor(value)) ? Types.INTEGER : Types.DOUBLE,
+                            (value == Math.floor(value)) ? Math.floor(value) : value,
+                    };
+                } else {
+                    newValue = new Object[]{
+                            Types.VARCHAR,
+                            stringCellValue.replace(',', '.')
+                    };
+                }
+            } catch (Exception e) {
+                newValue = new Object[]{
+                        Types.VARCHAR,
+                        stringCellValue
+                };
+            }
+        }
+        return newValue;
     }
 }

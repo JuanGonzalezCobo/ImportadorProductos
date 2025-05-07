@@ -24,7 +24,7 @@ public class MainController {
     private final DataBaseConnection DB_CONNECTION;
     private final Scanner SCANNER;
 
-    private final Map<String, Object[]> DATA_TO_INSERT_INTO_DB = new HashMap<>();
+    private final Map<String, Object[]> DATA_TO_INSERT_INTO_DB = new LinkedHashMap<>();
 
 
     public MainController(AppState state, AppConfig config, Scanner scanner) {
@@ -61,13 +61,9 @@ public class MainController {
 
     private void mainThread() {
         setRepositoryData();
+        //String defaultTable = SCANNER.nextLine();
 
-        System.out.println("Inserte el nombre de la tabla que quiere insertar");
-        // CAMBIARLO PARA QUE SE PUEDA LEER BIEN
-        String defaultDataFromConfigFile = SCANNER.nextLine();
-
-        mainInsertInDB(defaultDataFromConfigFile);
-
+        mainInsertInDB("ARTICULO");
         DB_CONNECTION.closeConnection();
         App.clearConsole();
     }
@@ -113,10 +109,10 @@ public class MainController {
         if (EXCEL_FILE_MANAGER.headersRow != 3) {
             for (int i = 0; i < data.getFirst().size(); i++) {
                 List<String[]> innerConnections = new ArrayList<>();
-                if (data.get(EXCEL_FILE_MANAGER.headersRow - 4).get(i)[1] == null) continue;
+                if (data.get(EXCEL_FILE_MANAGER.headersRow - 4).get(i) == null) continue;
 
                 for (int j = 0; j < (EXCEL_FILE_MANAGER.headersRow - 3) / 2; j++) {
-                    if (data.get(EXCEL_FILE_MANAGER.headersRow - 4 - j * 2).get(i)[1] == null) continue;
+                    if (data.get(EXCEL_FILE_MANAGER.headersRow - 4 - j * 2).get(i) == null) continue;
                     innerConnections.add(new String[]{
                                     (String) data.get(EXCEL_FILE_MANAGER.headersRow - 4 - j * 2).get(i)[1], //Nombre de la columna en excel
                                     (String) data.get(EXCEL_FILE_MANAGER.headersRow - 5 - j * 2).get(i)[1]  //Nombre de la columna en la tabla referenciada
@@ -158,6 +154,7 @@ public class MainController {
         Map<String, Data[]> config = REPOSITORY.getDEFAULT_TABLES_DATA_FROM_CONFIG();
 
         List<Data> dataPerTableConfig;
+        // TODO CREAR UNA CLASE QUE ME PERMITA HACER LO DE ANTES
 
         while ((dataRow = REPOSITORY.getDATA_FROM_EXCEL().poll()) != null) {
 
@@ -299,7 +296,7 @@ public class MainController {
             }
 
             // AÑADIMOS EL DATO DEL EXCEL
-            FOREIGN_KEY_INSERT_NEW_REGISTRY.put(columnName, new Object[]{
+            FOREIGN_KEY_INSERT_NEW_REGISTRY.put(foreignKeyInfo[2], new Object[]{
                     data[0],
                     data[1]
             });

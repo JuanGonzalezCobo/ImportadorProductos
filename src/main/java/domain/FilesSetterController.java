@@ -6,6 +6,7 @@ import app.AppState;
 import app.threads.WriteOnFileThread;
 import data.model.Data;
 import data.model.DbData;
+import data.model.IncreaseData;
 import data.repository.Repository;
 import data.service.config.ConfigFileManager;
 import data.service.db.DataBaseConnection;
@@ -96,7 +97,7 @@ public class FilesSetterController {
                         },
                         (param) -> CONFIG_FILE_MANAGER
                                 .unloadConfig((DbData[]) param[0],
-                                        (Data[]) param[1],
+                                        (IncreaseData[]) param[1],
                                         (String) param[2],
                                         (Column[]) param[3])
                 ),
