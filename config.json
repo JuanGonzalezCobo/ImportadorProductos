@@ -40,12 +40,111 @@
         "column": "CODIGO",
         "type": "int",
         "data": 34
+      },
+      {
+        "name": "CLIENTES",
+        "column": "CODIGO",
+        "type": "int",
+        "data": 7
       }
     ]
   },
   {
     "name": "Tablas",
     "data": [
+      {
+        "name": "CLIENTES",
+        "data": [
+          {
+            "name": "CLIENTE",
+            "type": "int",
+            "data": 0
+          },
+          {
+            "name": "PROVEEDOR",
+            "type": "int",
+            "data": 1
+          },
+          {
+            "name": "IDENTCLIENTE",
+            "type": "string"
+          },
+          {
+            "name": "IDENTPROVEEDOR",
+            "type": "string"
+          },
+          {
+            "name": "ALBARAN_VALORADO",
+            "type": "int",
+            "data": 0
+          },
+          {
+            "name": "CLAVE_IVA",
+            "type": "int",
+            "data": 3
+          },
+          {
+            "name": "TARIFA",
+            "type": "int",
+            "data": 1
+          },
+          {
+            "name": "TIPO_FACTURACION",
+            "type": "int",
+            "data": 1
+          },
+          {
+            "name": "TIPO_COBRO",
+            "type": "int",
+            "data": 1
+          },
+          {
+            "name": "SERIE_FACTURA",
+            "type": "string",
+            "data": "A"
+          },
+          {
+            "name": "GRUPO_DESCUENTO",
+            "type": "int",
+            "data": 1
+          },
+          {
+            "name": "TIPO_PAGO",
+            "type": "int",
+            "data": 1
+          },
+          {
+            "name": "DIA_INICIAL_PAGO",
+            "type": "int",
+            "data": 1
+          },
+          {
+            "name": "DIA_FINAL_PAGO",
+            "type": "int",
+            "data": 31
+          },
+          {
+            "name": "AGENTE",
+            "type": "int",
+            "data": 1
+          },
+          {
+            "name": "TIPO_COBRO",
+            "type": "int",
+            "data": 1
+          },
+          {
+            "name": "TIPO_CUENTA",
+            "type": "int",
+            "data": 570
+          },
+          {
+            "name": "NUM_CUENTA",
+            "type": "int",
+            "data": 0
+          }
+        ]
+      },
       {
         "name": "FAMILIAS",
         "data": [
@@ -172,7 +271,8 @@
           },
           {
             "name": "FECHA_ALTA",
-            "type": "dateTime"
+            "type": "dateTime",
+            "data": "AHORA()"
           },
           {
             "name": "US_MOD",
@@ -1030,7 +1130,8 @@
           },
           {
             "name": "FICHA_FECHA",
-            "type": "dateTime"
+            "type": "dateTime",
+            "data": "AHORA()"
           },
           {
             "name": "FICHA_NUMERO_REVISION",
