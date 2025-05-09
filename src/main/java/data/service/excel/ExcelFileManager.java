@@ -13,7 +13,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.sql.Types;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -107,37 +106,39 @@ public class ExcelFileManager {
                     Cell cell = row.getCell(cellNum);
 
                     if (cell == null) rowData.add(null);
-                    else {
-                        switch (cell.getCellType()) {
-                            case STRING -> rowData.add(new Object[]{
-                                    Types.VARCHAR,
-                                    cell.getStringCellValue().trim().toUpperCase()
-                            });
+                    else switch (cell.getCellType()) {
+                        case STRING -> rowData.add(new Object[]{
+                                Types.VARCHAR,
+                                cell.getStringCellValue().trim().toUpperCase()
+                        });
 
-                            case NUMERIC -> rowData.add(formatCellNumberValue(cell));
+                        case NUMERIC -> rowData.add(formatCellNumberValue(cell));
 
-                            case BOOLEAN -> rowData.add(new Object[]{
-                                    Types.BOOLEAN,
-                                    (cell.getBooleanCellValue()) ? 1 : 0
-                            });
+                        case BOOLEAN -> rowData.add(new Object[]{
+                                Types.INTEGER,
+                                (cell.getBooleanCellValue()) ? 1 : 0
+                        });
 
-                            case FORMULA -> {
-                                FormulaEvaluator evaluator = wb.getCreationHelper().createFormulaEvaluator();
-                                CellValue cellValue = evaluator.evaluate(cell);
-                                if (cellValue.getCellType() == CellType.NUMERIC) {
-                                    rowData.add(formatCellNumberValue(cell));
-                                } else {
-                                    rowData.add(new Object[]{
-                                            Types.VARCHAR,
-                                            cellValue.getStringValue()
-                                    });
-                                }
+                        case FORMULA -> {
+                            FormulaEvaluator evaluator = wb.getCreationHelper().createFormulaEvaluator();
+                            CellValue cellValue = evaluator.evaluate(cell);
+                            if (cellValue.getCellType() == CellType.NUMERIC) {
+                                rowData.add(formatCellNumberValue(cell));
+                            } else {
+                                rowData.add(new Object[]{
+                                        Types.VARCHAR,
+                                        cellValue.getStringValue()
+                                });
                             }
-                            default -> rowData.add(null);
                         }
+                        default -> rowData.add(null);
                     }
                 }
-                dataFromFile.add(rowData);
+
+                boolean todosNull = rowData.stream().allMatch(Objects::isNull);
+                if (!todosNull) {
+                    dataFromFile.add(rowData);
+                }
             }
 
         } catch (FileNotFoundException e) {
@@ -188,13 +189,15 @@ public class ExcelFileManager {
         } else {
             DataFormatter dataFormatter = new DataFormatter();
             String stringCellValue = dataFormatter.formatCellValue(cell);
-            double value = cell.getNumericCellValue();
+            Double value = cell.getNumericCellValue();
 
             try {
                 if (Objects.equals(stringCellValue, String.valueOf(value))) {
+                    double auxDoubleValueC1 = value;
+                    double auxDoubleValueC2 = value;
                     newValue = new Object[]{
-                            (value == Math.floor(value)) ? Types.INTEGER : Types.DOUBLE,
-                            (value == Math.floor(value)) ? Math.floor(value) : value,
+                            (value == Math.floor(auxDoubleValueC1)) ? Types.INTEGER : Types.DOUBLE,
+                            (value == Math.floor(auxDoubleValueC2)) ? value.intValue() : value,
                     };
                 } else {
                     newValue = new Object[]{

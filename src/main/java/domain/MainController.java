@@ -22,13 +22,13 @@ public class MainController {
     private final ExcelFileManager EXCEL_FILE_MANAGER;
     private final ConfigFileManager CONFIG_FILE_MANAGER;
     private final DataBaseConnection DB_CONNECTION;
-    private final Scanner SCANNER;
 
-    private final Map<String, Object[]> DATA_TO_INSERT_INTO_DB = new LinkedHashMap<>();
+    private final Map<String, Map<String, Object[]>> DATA_TO_INSERT_INTO_DB = new LinkedHashMap<>();
+
+    private String mainTable;
 
 
     public MainController(AppState state, AppConfig config, Scanner scanner) {
-        this.SCANNER = scanner;
         this.CONFIG_FILE_MANAGER = new ConfigFileManager();
         App.clearConsole();
         System.out.println("""
@@ -61,20 +61,21 @@ public class MainController {
 
     private void mainThread() {
         setRepositoryData();
-        //String defaultTable = SCANNER.nextLine();
 
-        mainInsertInDB("ARTICULO");
+        mainInsertInDB();
         DB_CONNECTION.closeConnection();
         App.clearConsole();
     }
 
     //*************************************************************************
-    //* FILL REPOSITORY                                                       *
+    //* FILL REPOSITORY                                                       * METERLO EN EL REPOSITORY
     //*************************************************************************
 
     private void setRepositoryData() {
         List<List<Object[]>> dataFromExcel = EXCEL_FILE_MANAGER.readFile();
         REPOSITORY.setCOLUMNS_EXCEL(setExcelsColumn(dataFromExcel));
+        REPOSITORY.setTABLES_FROM_EXCEL(setExcelsTables(dataFromExcel));
+        REPOSITORY.setTABLE_HEADERS_FROM_EXCEL(setExcelsHeaderTables(dataFromExcel));
         REPOSITORY.setFOREIGN_KEY_HEADERS_FROM_EXCEL(setExcelsHeaderForeignKeys(dataFromExcel));
         REPOSITORY.setINNER_DATA_HEADERS_FROM_EXCEL(setExcelHeaderInnerConnections(dataFromExcel));
         REPOSITORY.setDATA_FROM_EXCEL(setExcelsData(dataFromExcel));
@@ -83,20 +84,38 @@ public class MainController {
     private List<String> setExcelsColumn(List<List<Object[]>> data) {
         List<String> columns = new ArrayList<>();
         for (int i = 0; i < data.get(EXCEL_FILE_MANAGER.headersRow).size(); i++) {
-            columns.add((String) data.get(EXCEL_FILE_MANAGER.headersRow).get(i)[1]);
+            columns.add((String) data.get(EXCEL_FILE_MANAGER.headersRow).get(i)[1]); // COLUMNA
         }
         return columns;
+    }
+
+    private Set<String> setExcelsTables(List<List<Object[]>> data) {
+        Set<String> tables = new LinkedHashSet<>();
+        for (int i = 0; i < data.get(EXCEL_FILE_MANAGER.headersRow).size(); i++) {
+            tables.add((String) data.get(EXCEL_FILE_MANAGER.headersRow - 1).get(i)[1]);
+        }
+        return tables;
+    }
+
+    private Map<String, String> setExcelsHeaderTables(List<List<Object[]>> data) {
+        Map<String, String> headerTable = new HashMap<>();
+        for (int i = 0; i < data.get(EXCEL_FILE_MANAGER.headersRow).size(); i++) {
+            headerTable.put((String) data.get(EXCEL_FILE_MANAGER.headersRow).get(i)[1],
+                    (String) data.get(EXCEL_FILE_MANAGER.headersRow - 1).get(i)[1]);
+        }
+
+        return headerTable;
     }
 
     private Map<String, String[]> setExcelsHeaderForeignKeys(List<List<Object[]>> data) {
         Map<String, String[]> header = new HashMap<>();
 
         for (int i = 0; i < data.getFirst().size(); i++) {
-            if (data.get(EXCEL_FILE_MANAGER.headersRow - 1).get(i) != null) {
+            if (data.get(EXCEL_FILE_MANAGER.headersRow - 2).get(i) != null) {
                 header.put((String) data.get(EXCEL_FILE_MANAGER.headersRow).get(i)[1], new String[]{
-                        (String) data.get(EXCEL_FILE_MANAGER.headersRow - 1).get(i)[1],    // Tabla referenciada
-                        (String) data.get(EXCEL_FILE_MANAGER.headersRow - 2).get(i)[1],    // Columna de tabla referenciada
-                        (String) data.get(EXCEL_FILE_MANAGER.headersRow - 3).get(i)[1]     // Columna que iguala el valor de la columna del excel
+                        (String) data.get(EXCEL_FILE_MANAGER.headersRow - 2).get(i)[1],    // Tabla referenciada
+                        (String) data.get(EXCEL_FILE_MANAGER.headersRow - 3).get(i)[1],    // Columna de tabla referenciada
+                        (String) data.get(EXCEL_FILE_MANAGER.headersRow - 4).get(i)[1]     // Columna que iguala el valor de la columna del excel
                 });
             }
         }
@@ -106,16 +125,16 @@ public class MainController {
     private Map<String, List<String[]>> setExcelHeaderInnerConnections(List<List<Object[]>> data) {
         Map<String, List<String[]>> header = new HashMap<>();
 
-        if (EXCEL_FILE_MANAGER.headersRow != 3) {
+        if (EXCEL_FILE_MANAGER.headersRow != 4) {
             for (int i = 0; i < data.getFirst().size(); i++) {
                 List<String[]> innerConnections = new ArrayList<>();
-                if (data.get(EXCEL_FILE_MANAGER.headersRow - 4).get(i) == null) continue;
+                if (data.get(EXCEL_FILE_MANAGER.headersRow - 5).get(i) == null) continue;
 
-                for (int j = 0; j < (EXCEL_FILE_MANAGER.headersRow - 3) / 2; j++) {
-                    if (data.get(EXCEL_FILE_MANAGER.headersRow - 4 - j * 2).get(i) == null) continue;
+                for (int j = 0; j < (EXCEL_FILE_MANAGER.headersRow - 4) / 2; j++) {
+                    if (data.get(EXCEL_FILE_MANAGER.headersRow - 5 - j * 2).get(i) == null) continue;
                     innerConnections.add(new String[]{
-                                    (String) data.get(EXCEL_FILE_MANAGER.headersRow - 4 - j * 2).get(i)[1], //Nombre de la columna en excel
-                                    (String) data.get(EXCEL_FILE_MANAGER.headersRow - 5 - j * 2).get(i)[1]  //Nombre de la columna en la tabla referenciada
+                                    (String) data.get(EXCEL_FILE_MANAGER.headersRow - 5 - j * 2).get(i)[1], //Nombre de la columna en excel
+                                    (String) data.get(EXCEL_FILE_MANAGER.headersRow - 6 - j * 2).get(i)[1]  //Nombre de la columna en la tabla referenciada
                             }
                     );
                 }
@@ -146,40 +165,67 @@ public class MainController {
     //* MAIN FUNCTIONALITY                                                    *
     //*************************************************************************
 
-    private void mainInsertInDB(String tableName) {
+    private void mainInsertInDB() {
         Map<String, Object[]> dataRow;
 
+        Set<String> excelHeaderAllTables = REPOSITORY.getTABLES_FROM_EXCEL();
         Map<String, String[]> excelHeaderForeignKey = REPOSITORY.getFOREIGN_KEY_HEADERS_FROM_EXCEL();
         Map<String, List<String[]>> excelHeaderInnerConnections = REPOSITORY.getINNER_DATA_HEADERS_FROM_EXCEL();
-        Map<String, Data[]> config = REPOSITORY.getDEFAULT_TABLES_DATA_FROM_CONFIG();
+        Map<String, String> excelHeaderTable = REPOSITORY.getTABLE_HEADERS_FROM_EXCEL();
 
-        List<Data> dataPerTableConfig;
-        // TODO CREAR UNA CLASE QUE ME PERMITA HACER LO DE ANTES
+        Map<String, Data[]> config = REPOSITORY.getDEFAULT_TABLES_DATA_FROM_CONFIG();
+        Map<String, List<Data>> dataPerTableConfig = new HashMap<>();
+
+        mainTable = excelHeaderAllTables.toArray()[0].toString();
 
         while ((dataRow = REPOSITORY.getDATA_FROM_EXCEL().poll()) != null) {
 
             DATA_TO_INSERT_INTO_DB.clear();
-            dataPerTableConfig = new ArrayList<>(Arrays.stream(config.get(tableName)).toList());
+            dataPerTableConfig.clear();
+
+            for (String table : excelHeaderAllTables) {
+                DATA_TO_INSERT_INTO_DB.put(table, new LinkedHashMap<>());
+                if (config.get(table) != null)
+                    dataPerTableConfig.put(table, new ArrayList<>(Arrays.stream(config.get(table)).toList()));
+            }
+
+            String lastTableName = mainTable;
 
             for (String columnName : REPOSITORY.getCOLUMNS_EXCEL()) {
                 Object[] infoToInsert;
+                String tableName = excelHeaderTable.get(columnName);  // COGEMOS EL NOMBRE DE LA TABLA
+
+                if (!tableName.equals(lastTableName)) {
+
+                    if (!dataPerTableConfig.get(lastTableName).isEmpty()) {
+                        addLastInfoFromConfig(DATA_TO_INSERT_INTO_DB.get(lastTableName), dataPerTableConfig.get(lastTableName));
+                    }
+
+                    createNewRegistry(lastTableName, DATA_TO_INSERT_INTO_DB.get(lastTableName));
+                    excelHeaderAllTables.remove(lastTableName);
+                }
+
 
                 if (dataRow.get(columnName) == null) {  //  ESTÁ VACÍO EL CAMPO EN EL EXCEL
 
                     // PRIMERO BUSCAMOS EN EL FILE_CONFIG
-                    Data columnInfoFromConfig = dataPerTableConfig.stream()
+                    List<Data> dataList = dataPerTableConfig.get(tableName);
+                    if (dataList == null) continue;
+                    Data columnInfoFromConfig = dataList.stream()
                             .filter(data -> data.getName().equals(columnName))
                             .findFirst()
                             .orElse(null);
 
                     // SI NO ENCUENTRA NADA, ENTONCES CONTINUA CON LA SIGUIENTE COLUMNA DEL EXCEL.
                     if (columnInfoFromConfig == null || columnInfoFromConfig.getData() == null) continue;
+                    // HACER UNA CONFIRMACION DE QUE HAYA FOREIGNKEYS O INNERCONNECTIONS
 
                     // SI ENCUENTRA QUE SE AÑADA
                     infoToInsert = createDataToInsert(
                             config,
                             excelHeaderForeignKey,
                             excelHeaderInnerConnections,
+                            excelHeaderTable,
                             columnName,
                             new Object[]{columnInfoFromConfig.getType(), columnInfoFromConfig.getData()}
                     );
@@ -189,30 +235,44 @@ public class MainController {
                             config,
                             excelHeaderForeignKey,
                             excelHeaderInnerConnections,
+                            excelHeaderTable,
                             columnName,
                             dataRow.get(columnName)
                     );
                 }
                 // INSERTAMOS EN EL MAPA PARA LUEGO CREAR EL NUEVO REGISTRO
-                DATA_TO_INSERT_INTO_DB.put(columnName, infoToInsert);
+
+
+                DATA_TO_INSERT_INTO_DB.get(tableName).put(columnName, infoToInsert);
 
                 // BORRAMOS EL VALOR QUE ESTÁ DENTRO DE LA LISTA DE CONFIGURACIÓN PARA QUE NO HAYA REPETICIONES
                 try {
-                    eraseFromConfigList(dataPerTableConfig, columnName);
+                    if (dataPerTableConfig.get(tableName) != null)
+                        eraseFromConfigList(dataPerTableConfig.get(tableName), columnName);
                 } catch (Exception e) {
                     System.out.println("[STATUS]: No se eliminó ningún valor en la tabla principal");
                 }
+
+                lastTableName = tableName;
             }
             /*
                 AL FINAL SE COMPRUEBA EL ARCHIVO DE CONFIGURACION, QUE NO TENGA MÁS COSAS,
                 SI NO ES EL CASO, QUE TERMINE POR IMPORTANDOLO PARA PONERLO EN EL INSERT DE LA DB
             */
-            if (!dataPerTableConfig.isEmpty()) {
-                addLastInfoFromConfig(DATA_TO_INSERT_INTO_DB, dataPerTableConfig);
+            for (String table : excelHeaderAllTables) {
+                if (config.get(table) != null)
+                    if (!dataPerTableConfig.get(table).isEmpty()) {
+                        addLastInfoFromConfig(DATA_TO_INSERT_INTO_DB.get(table), dataPerTableConfig.get(table));
+
+                    }
+            }
+            // CREAMOS EL NUEVO REGISTRO EN LA BASE DE DATOS
+
+
+            for (String table : excelHeaderAllTables) {
+                createNewRegistry(table, DATA_TO_INSERT_INTO_DB.get(table));
             }
 
-            // CREAMOS EL NUEVO REGISTRO EN LA BASE DE DATOS
-            createNewRegistry(tableName, DATA_TO_INSERT_INTO_DB);
         }
     }
 
@@ -220,6 +280,7 @@ public class MainController {
             Map<String, Data[]> config,
             Map<String, String[]> excelHeaderForeignKey,
             Map<String, List<String[]>> excelHeaderInnerConnections,
+            Map<String, String> excelHeaderTable,
             String columnName,
             Object[] data
     ) {
@@ -236,7 +297,7 @@ public class MainController {
                     );
 
             if (newData[0] == 0) {  // NO EXISTE
-                createNewRegistryInForeignTable(config, excelHeaderInnerConnections, foreignKeyInfo, data, columnName);
+                createNewRegistryInForeignTable(config, excelHeaderInnerConnections, excelHeaderTable, foreignKeyInfo, data, columnName);
                 newData = DB_CONNECTION.getIdentifierColumn(data[1],
                         foreignKeyInfo[0],
                         foreignKeyInfo[1],
@@ -260,6 +321,7 @@ public class MainController {
     private void createNewRegistryInForeignTable(
             Map<String, Data[]> config,
             Map<String, List<String[]>> excelHeaderInnerConnections,
+            Map<String, String> excelTableNames,
             String[] foreignKeyInfo,
             Object[] data,
             String columnName
@@ -277,7 +339,8 @@ public class MainController {
             if ((innerConnections = excelHeaderInnerConnections.get(columnName)) != null) { // ESTO ES QUE HAYA INNER CONNECTIONS
                 for (String[] innerConnection : innerConnections) {
                     Object[] infoToInsert;
-                    if ((infoToInsert = DATA_TO_INSERT_INTO_DB.get(innerConnection[0])) != null) {
+                    if ((infoToInsert = DATA_TO_INSERT_INTO_DB
+                            .get(excelTableNames.get(innerConnection[0])).get(innerConnection[0])) != null) {
                         // AÑADIMOS LOS INNER_CONNECTIONS
                         FOREIGN_KEY_INSERT_NEW_REGISTRY.put(
                                 innerConnection[1],
@@ -313,10 +376,10 @@ public class MainController {
             addLastInfoFromConfig(FOREIGN_KEY_INSERT_NEW_REGISTRY, foreignKeyDataFromConfig);
         }
 
-        createNewRegistry(foreignKeyInfo[0], FOREIGN_KEY_INSERT_NEW_REGISTRY);
+        if (!Objects.equals(excelTableNames.get(columnName), mainTable))
+            createNewRegistry(foreignKeyInfo[0], FOREIGN_KEY_INSERT_NEW_REGISTRY);
     }
 
-    //ESTO FUNCIONA
     private void createNewRegistry(String tableName, Map<String, Object[]> dataForNewRegistry) {
         Map<String, IncreaseData> increaseDataMap = REPOSITORY.getDEFAULT_INCREASE_FROM_CONFIG();
         IncreaseData increaseData;
@@ -337,8 +400,12 @@ public class MainController {
         if ((increaseData.getType()).equals("str")) {
             // DEJARLO PARA LUEGO
         } else {
-            DB_CONNECTION.setIncreaseThroughInt((Integer) increaseData.getData());                  // UPDATE
-            incrementData = DB_CONNECTION.getIncreaseCodeInDB((Integer) increaseData.getData());    // SELECT
+            if (DB_CONNECTION.setIncreaseThroughInt((Integer) increaseData.getData())) {                 // UPDATE
+                incrementData = DB_CONNECTION.getIncreaseCodeInDB((Integer) increaseData.getData());     // SELECT
+            } else {
+                System.out.println("[ERROR] Ha habido un error con el incremento");
+                System.exit(1);
+            }
         }
         return incrementData;
     }

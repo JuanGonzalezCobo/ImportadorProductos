@@ -4,12 +4,15 @@ import data.service.db.model.Column;
 import lombok.Getter;
 
 import java.sql.*;
+import java.time.LocalDateTime;
 import java.util.*;
 
 @Getter
 public class DataBaseConnection {
 
     private final Connection connection;
+
+    private final Properties properties = new Properties();
 
     public DataBaseConnection(String[] data) {
         connection = getConnection(data[0], data[1], data[2], data[3]);
@@ -22,8 +25,12 @@ public class DataBaseConnection {
     private Connection getConnection(String url, String database, String user, String password) {
         Connection con = null;
         try {
+            properties.setProperty("user", user);
+            properties.setProperty("password", password);
+            properties.setProperty("lc_ctype", "WIN1252");
+
             con = DriverManager
-                    .getConnection(url.concat(database), user, password);
+                    .getConnection(url.concat(database), properties);
             System.out.println("[STATUS] Conexión exitosa a la base de datos.");
         } catch (SQLException e) {
             System.out.println("[ERROR] No se conectó con la base de datos: " + e.getMessage());
@@ -92,7 +99,7 @@ public class DataBaseConnection {
             while (r.next()) {
                 columns.add(
                         new Column(r.getString(4),   //Column name
-                                r.getString(5))     //Column type
+                                r.getString(5))      //Column type
                 );
             }
         } catch (SQLException e) {
@@ -120,32 +127,6 @@ public class DataBaseConnection {
             System.err.println("Error al obtener claves foráneas: " + e.getMessage());
         }
         return foreignKeys;
-    }
-
-    public boolean dataExistsInForeignTable(String tableName, String columnName, Object[] value) {
-        final String SQL = "SELECT COUNT(*) FROM ? WHERE ? = ?";
-
-        try (PreparedStatement stmt = connection.prepareStatement(SQL)) {
-            stmt.setString(1, tableName);
-            stmt.setString(2, columnName);
-            switch (Integer.parseInt(value[0].toString())) {
-                case Types.FLOAT, Types.DOUBLE, Types.DECIMAL -> stmt.setFloat(3, (Float) value[1]);
-                case Types.INTEGER, Types.BIGINT, Types.SMALLINT, Types.TINYINT -> stmt.setInt(3, (Integer) value[1]);
-                case Types.TIMESTAMP, Types.DATE -> stmt.setTimestamp(3, (Timestamp) value[1]);
-                case Types.BOOLEAN -> stmt.setBoolean(3, (Boolean) value[1]);
-                default -> stmt.setString(3, value[1].toString());
-            }
-
-            boolean returnValue = false;
-            ResultSet rs = stmt.executeQuery();
-            if (rs.next()) {
-                returnValue = true;
-            }
-            return returnValue;
-        } catch (SQLException e) {
-            System.out.println(e.getMessage());
-            return false;
-        }
     }
 
     public int[] getIdentifierColumn(Object data, String tableName, String pk, String columnName) {
@@ -241,7 +222,7 @@ public class DataBaseConnection {
                      Types.SMALLINT,
                      Types.TINYINT,
                      Types.BOOLEAN -> SQL.append(value[1]);
-                default -> SQL.append("'").append(value[1].toString()).append("'");
+                default -> SQL.append("'").append(value[1].toString().replaceAll("'", "''")).append("'");
             }
 
             if (value != values.values().stream().toList().getLast()) {
@@ -250,7 +231,7 @@ public class DataBaseConnection {
         }
         SQL.append(" ) ");
 
-        try (Statement statement = connection.createStatement()) {
+        try (Statement statement = connection.createStatement();) {
             statement.executeUpdate(SQL.toString());
         } catch (SQLException e) {
             throw new RuntimeException(e);

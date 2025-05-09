@@ -3,14 +3,11 @@ package data.repository;
 import data.model.*;
 import data.service.config.ClassType;
 
-import java.time.DateTimeException;
+import java.sql.Types;
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 
-import static java.time.LocalTime.now;
 
 @lombok.Data
 public class Repository {
@@ -18,6 +15,8 @@ public class Repository {
     //*************************************************************************
     //* ARGUMENTS                                                             *
     //*************************************************************************
+
+    private final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd hh:mm:ss");
 
     //***************
     //* CONFIG FILE *
@@ -34,9 +33,11 @@ public class Repository {
 
     private List<String> COLUMNS_EXCEL;
 
-    private Map<String, String[]> FOREIGN_KEY_HEADERS_FROM_EXCEL;       //Estos son aquellos que tienen un foreign key
-    private Map<String, List<String[]>> INNER_DATA_HEADERS_FROM_EXCEL;  //Estos son aquellos que necesitan de otra columna para funcionar
-    private Queue<Map<String, Object[]>> DATA_FROM_EXCEL;
+    private Map<String, String> TABLE_HEADERS_FROM_EXCEL;               //  Nombre de la tabla por columna
+    private Set<String> TABLES_FROM_EXCEL;                              //  Todas las tablas del excel
+    private Map<String, String[]> FOREIGN_KEY_HEADERS_FROM_EXCEL;       //  Estos son aquellos que tienen un foreign key
+    private Map<String, List<String[]>> INNER_DATA_HEADERS_FROM_EXCEL;  //  Estos son aquellos que necesitan de otra columna para funcionar
+    private Queue<Map<String, Object[]>> DATA_FROM_EXCEL;               //  Los propios datos de la tabla
 
     //*************************************************************************
     //* CONSTRUCTOR                                                           *
@@ -72,8 +73,13 @@ public class Repository {
                 String type = (String) eachColumn.getType();
                 int classType = ClassType.getClassType(type);
                 // AÑADIR LA HORA DE AHORA
-                if ((classType == 93) && eachColumn.getData() != null && eachColumn.getData().equals("AHORA()")) {
-                    eachColumn.setData(LocalDateTime.now());
+                if (classType == Types.TIMESTAMP
+                        && eachColumn.getData() != null
+                        && eachColumn.getData().equals("AHORA()")) {
+                    eachColumn.setData(LocalDateTime.now().format(DATE_FORMAT));
+                } else if (classType == Types.INTEGER && eachColumn.getData() != null) {
+                    Double auxData = (Double) eachColumn.getData();
+                    eachColumn.setData(auxData.intValue());
                 }
                 eachColumn.setType(ClassType.getClassType(type));
             }
