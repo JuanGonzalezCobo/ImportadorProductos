@@ -11,6 +11,8 @@ public class DataBaseConnection {
 
     private final Connection connection;
 
+    private final Properties properties = new Properties();
+
     public DataBaseConnection(String[] data) {
         connection = getConnection(data[0], data[1], data[2], data[3]);
     }
@@ -22,8 +24,12 @@ public class DataBaseConnection {
     private Connection getConnection(String url, String database, String user, String password) {
         Connection con = null;
         try {
+            properties.setProperty("user", user);
+            properties.setProperty("password", password);
+            properties.setProperty("lc_ctype", "WIN1252"); // PONERLO PARA QUE SE RELLENE EN EL ARCHIVO DE CONFIG.
+
             con = DriverManager
-                    .getConnection(url.concat(database), user, password);
+                    .getConnection(url.concat(database), properties);
             System.out.println("[STATUS] Conexión exitosa a la base de datos.");
         } catch (SQLException e) {
             System.out.println("[ERROR] No se conectó con la base de datos: " + e.getMessage());

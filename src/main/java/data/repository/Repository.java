@@ -3,8 +3,10 @@ package data.repository;
 import data.model.*;
 import data.service.config.ClassType;
 
+import java.sql.Types;
 import java.time.DateTimeException;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,6 +20,8 @@ public class Repository {
     //*************************************************************************
     //* ARGUMENTS                                                             *
     //*************************************************************************
+
+    private final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd hh:mm:ss");
 
     //***************
     //* CONFIG FILE *
@@ -72,8 +76,13 @@ public class Repository {
                 String type = (String) eachColumn.getType();
                 int classType = ClassType.getClassType(type);
                 // AÑADIR LA HORA DE AHORA
-                if ((classType == 93) && eachColumn.getData() != null && eachColumn.getData().equals("AHORA()")) {
-                    eachColumn.setData(LocalDateTime.now());
+                if (classType == Types.TIMESTAMP
+                        && eachColumn.getData() != null
+                        && eachColumn.getData().equals("AHORA()")) {
+                    eachColumn.setData(LocalDateTime.now().format(DATE_FORMAT));
+                } else if (classType == Types.INTEGER && eachColumn.getData() != null) {
+                    Double auxData = (Double) eachColumn.getData();
+                    eachColumn.setData(auxData.intValue());
                 }
                 eachColumn.setType(ClassType.getClassType(type));
             }

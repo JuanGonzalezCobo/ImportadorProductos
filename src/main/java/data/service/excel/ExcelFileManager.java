@@ -13,7 +13,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.sql.Types;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -117,7 +116,7 @@ public class ExcelFileManager {
                             case NUMERIC -> rowData.add(formatCellNumberValue(cell));
 
                             case BOOLEAN -> rowData.add(new Object[]{
-                                    Types.BOOLEAN,
+                                    Types.INTEGER,
                                     (cell.getBooleanCellValue()) ? 1 : 0
                             });
 
@@ -137,7 +136,10 @@ public class ExcelFileManager {
                         }
                     }
                 }
-                dataFromFile.add(rowData);
+                boolean todosNull = rowData.stream().allMatch(Objects::isNull);
+                if (!todosNull) {
+                    dataFromFile.add(rowData);
+                }
             }
 
         } catch (FileNotFoundException e) {
@@ -183,18 +185,18 @@ public class ExcelFileManager {
         if (DateUtil.isCellDateFormatted(cell)) {
             newValue = new Object[]{
                     Types.DATE,
-                    cell.getDateCellValue()
+                    cell.getDateCellValue()                                     //  TODO MIRAR COMO SE PONEN LAS FECHAS
             };
         } else {
             DataFormatter dataFormatter = new DataFormatter();
             String stringCellValue = dataFormatter.formatCellValue(cell);
-            double value = cell.getNumericCellValue();
+            Double value = cell.getNumericCellValue();
 
             try {
                 if (Objects.equals(stringCellValue, String.valueOf(value))) {
                     newValue = new Object[]{
                             (value == Math.floor(value)) ? Types.INTEGER : Types.DOUBLE,
-                            (value == Math.floor(value)) ? Math.floor(value) : value,
+                            (value == Math.floor(value)) ? value.intValue() : value,
                     };
                 } else {
                     newValue = new Object[]{
