@@ -45,7 +45,7 @@ public class App {
             try {
                 switch (option = appPath(SCANNER.nextLine())) {
                     case 1 -> new FilesSetterController(STATE, CONFIG, SCANNER);
-                    case 2 -> new MainController(STATE, CONFIG, SCANNER);
+                    case 2 -> new MainController(STATE, CONFIG);
                     default -> System.out.println("-- SALIENDO DEL PROGRAMA --");
                 }
 

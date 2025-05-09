@@ -7,10 +7,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
@@ -20,9 +17,6 @@ public class ExcelFileManager {
 
     @Getter
     public int headersRow = 0;
-
-    @Getter
-    public String fileName;
 
     private List<Integer> excelColumnsWithHeader;
 
@@ -54,19 +48,20 @@ public class ExcelFileManager {
 
 
     private String getFileURL() {
-        JFileChooser fileChooser = new JFileChooser();
+        JFileChooser fileChooser = new JFileChooser(new File("").getAbsolutePath());
 
         FileNameExtensionFilter filter = new FileNameExtensionFilter("Archivos de excel",
                 "xlsx", "xls");
         fileChooser.setFileFilter(filter);
         fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
         int returnVal = fileChooser.showOpenDialog(null);
+        fileChooser.setMultiSelectionEnabled(false);
+
 
         if (returnVal == JFileChooser.APPROVE_OPTION) {
-            fileName = fileChooser.getSelectedFile().getName();
             return fileChooser.getSelectedFile().getAbsolutePath();
         } else {
-            System.out.println(AppConsoleStyle.RED + "[ERROR] No se seleccionó el archivo");
+            System.out.println(AppConsoleStyle.RED + "[ERROR] No se seleccionó el archivo" + AppConsoleStyle.RESET);
             System.exit(1);
             return null;
         }
@@ -75,7 +70,7 @@ public class ExcelFileManager {
     public List<List<Object[]>> readFile() {
         List<List<Object[]>> dataFromFile = new ArrayList<>();
 
-        try (FileInputStream fis = new FileInputStream("C:\\Users\\Practicas\\Documents\\java\\ImportadorProductos\\src\\main\\myExcel\\articulo.xlsx");
+        try (FileInputStream fis = new FileInputStream(getFileURL());
              XSSFWorkbook wb = new XSSFWorkbook(fis)) {
             Sheet sheet = wb.getSheetAt(0);
 
