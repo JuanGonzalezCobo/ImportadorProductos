@@ -93,7 +93,6 @@ public class Repository {
             }
             tablesConfig.put(eachTableData.getName(), eachTableData.getData());
         }
-        System.out.println(LocalDateTime.now());
         return tablesConfig;
     }
 

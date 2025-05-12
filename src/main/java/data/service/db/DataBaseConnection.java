@@ -128,32 +128,6 @@ public class DataBaseConnection {
         return foreignKeys;
     }
 
-    public boolean dataExistsInForeignTable(String tableName, String columnName, Object[] value) {
-        final String SQL = "SELECT COUNT(*) FROM ? WHERE ? = ?";
-
-        try (PreparedStatement stmt = connection.prepareStatement(SQL)) {
-            stmt.setString(1, tableName);
-            stmt.setString(2, columnName);
-            switch (Integer.parseInt(value[0].toString())) {
-                case Types.FLOAT, Types.DOUBLE, Types.DECIMAL -> stmt.setFloat(3, (Float) value[1]);
-                case Types.INTEGER, Types.BIGINT, Types.SMALLINT, Types.TINYINT -> stmt.setInt(3, (Integer) value[1]);
-                case Types.TIMESTAMP, Types.DATE -> stmt.setTimestamp(3, (Timestamp) value[1]);
-                case Types.BOOLEAN -> stmt.setBoolean(3, (Boolean) value[1]);
-                default -> stmt.setString(3, value[1].toString());
-            }
-
-            boolean returnValue = false;
-            ResultSet rs = stmt.executeQuery();
-            if (rs.next()) {
-                returnValue = true;
-            }
-            return returnValue;
-        } catch (SQLException e) {
-            System.out.println(e.getMessage());
-            return false;
-        }
-    }
-
     public int[] getIdentifierColumn(Object data, String tableName, String pk, String columnName) {
         final StringBuilder SQL = new StringBuilder("SELECT " + pk + " FROM " + tableName + " WHERE " + columnName + " = ");
 
@@ -262,5 +236,47 @@ public class DataBaseConnection {
             throw new RuntimeException(e);
         }
 
+    }
+
+    public boolean checkIfAlreadyExists(String tableName, Map<String, Object[]> values) {
+        if (values.isEmpty()) {
+            System.out.println("No existen valores en el mapa para comprobar si ya existe en la tabla " + tableName);
+            System.exit(1);
+            return false;
+        }
+        boolean isFirstInteration = true;
+        final StringBuilder SQL = new StringBuilder("SELECT COUNT(*) FROM " + tableName + " WHERE ");
+
+        for (String keys : values.keySet()) {
+            if (isFirstInteration) {
+                isFirstInteration = false;
+            } else {
+                SQL.append(" AND ");
+            }
+            Object[] value = values.get(keys);
+            SQL.append(keys).append(" = ");
+            switch ((Integer) value[0]) {
+                case Types.FLOAT,
+                     Types.DOUBLE,
+                     Types.DECIMAL,
+                     Types.INTEGER,
+                     Types.BIGINT,
+                     Types.SMALLINT,
+                     Types.TINYINT,
+                     Types.BOOLEAN -> SQL.append(value[1]);
+                default -> SQL.append("'").append(value[1].toString()).append("'");
+            }
+        }
+
+        try (Statement statement = connection.createStatement();
+             ResultSet resultSet = statement.executeQuery(SQL.toString())) {
+            if (resultSet.next()) {
+                return resultSet.getInt("COUNT") != 0;
+            } else {
+                return false;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

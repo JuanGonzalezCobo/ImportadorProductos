@@ -10,7 +10,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-
 public class ConfigFileManager {
 
     private final String CONFIG_FILE_NAME = "config.json";
@@ -55,7 +54,7 @@ public class ConfigFileManager {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(CONFIG_FILE_NAME))) {
             writer.write(createNewSection(dataBaseConfig, increaseConfig, tableName, columnData));
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException(e);  // TODO PONER BIEN EL ERROR
         }
         return null;
     }
