@@ -75,14 +75,14 @@ public class MainController {
     private void mainInsertInDB() {
         Map<TableNameExcelData, Object[]> dataRow;
 
-        List<String> excelAllTablesHeaders;                                                                                             // LISTA QUE VIENE DEL SET DONDE APARECEN TODAS LAS TABLAS                                                                                    // LISTA DE LAS TABLAS REFERENCIADAS A LAS COLUMNAS
-        Map<TableNameExcelData, String[]> excelHeaderForeignKey = REPOSITORY.getFOREIGN_KEY_HEADERS_FROM_EXCEL();                       // MAPA DE LAS FK, CON _KEYS_ COMO LAS COLUMNAS DEL EXCEL
-        Map<TableNameExcelData, Object[]> excelHeaderInnerConnections = REPOSITORY.getINNER_DATA_HEADERS_FROM_EXCEL();                  // MAPA DE LOS INNER_CONNECTIONS, CON _KEYS_ COMO LAS COLUMNAS DEL EXCEL
-        Map<String, Data[]> config = REPOSITORY.getDEFAULT_TABLES_DATA_FROM_CONFIG();                                                   // MAPA DE LOS DATOS DE LAS TABLAS EN EL ARCHIVO DE config.json
+        List<String> excelAllTablesHeaders;                                                                                 // LISTA QUE VIENE DEL SET DONDE APARECEN TODAS LAS TABLAS
+        Map<TableNameExcelData, String[]> excelHeaderForeignKey = REPOSITORY.getFOREIGN_KEY_HEADERS_FROM_EXCEL();           // MAPA DE LAS FK, CON _KEYS_ COMO LAS COLUMNAS DEL EXCEL
+        Map<TableNameExcelData, Object[]> excelHeaderInnerConnections = REPOSITORY.getINNER_DATA_HEADERS_FROM_EXCEL();      // MAPA DE LOS INNER_CONNECTIONS, CON _KEYS_ COMO LAS COLUMNA
 
-        Map<String, List<Data>> dataPerTableConfig = new LinkedHashMap<>();                                                             // MAPA DE LOS DATOS QUE HAY EN ARCHIVO config.json, CON _KEYS_ COMO LA TABLA
+        Map<String, Data[]> config = REPOSITORY.getDEFAULT_TABLES_DATA_FROM_CONFIG();                                       // MAPA DE LOS DATOS DE LAS TABLAS EN EL ARCHIVO DE config.json
+        Map<String, List<Data>> dataPerTableConfig = new LinkedHashMap<>();                                                 // MAPA DE LOS DATOS QUE HAY EN ARCHIVO config.json, CON _KEYS_ CO
 
-        String tableName = null;                                                                                                        // STRING, NOMBRE DE LA TABLA POR COLUMNA
+        String tableName = null;                                                                                            // STRING, NOMBRE DE LA TABLA POR COLUMNA
         int tableNumber = 0;
 
         while ((dataRow = REPOSITORY.getDATA_FROM_EXCEL().poll()) != null) {
@@ -121,23 +121,29 @@ public class MainController {
                 //*    INSERT OF REGISTRY WITH SAME TABLE NAME    *
                 //*************************************************
 
-                if (lastestTableName != null &&
-                        (!lastestTableName.equals(tableName) || tableNumber != lastestTableNumber)
-                ) {
+                if (lastestTableName != null
+                        && (!lastestTableName.equals(tableName) || tableNumber != lastestTableNumber)
+                        && !DATA_TO_INSERT_INTO_DB.get(lastestTableName).isEmpty()) {
 
-                    if (!DATA_TO_INSERT_INTO_DB.get(lastestTableName).isEmpty()) {
                         if (config.get(lastestTableName) != null) {
                             Map<String, Object[]> dataToInsertAux = new HashMap<>(DATA_TO_INSERT_INTO_DB
                                     .get(lastestTableName));
                             addLastInfoFromConfig(dataToInsertAux, dataPerTableConfig.get(lastestTableName));
                             DATA_TO_INSERT_INTO_DB.put(lastestTableName, dataToInsertAux);
                             dataPerTableConfig.remove(lastestTableName);
+
+                            // RENOVATE THE DATA FROM CONFIG IN CASE THERE ARE MORE THAN ONE KIND OF TABLE IN THE EXCEL
+                            dataPerTableConfig.put(
+                                    lastestTableName,
+                                    Arrays.stream(config.get(lastestTableName)).toList()
+                            );
+
                         }
                         if (DB_CONNECTION.checkIfAlreadyExists(
                                 lastestTableName,
                                 DATA_TO_INSERT_INTO_DB.get(lastestTableName))
                         ) createNewRegistry(lastestTableName, DATA_TO_INSERT_INTO_DB.get(lastestTableName));
-                    }
+
                 }
 
                 Object[] infoToInsert;
@@ -236,10 +242,10 @@ public class MainController {
         int[] newData;
 
         if ((foreignKeyInfo = excelHeaderForeignKey.get(column)) != null
-                && (innerConnectionInfo = excelHeaderInnerConnections.get(column)) != null) {                           // [IF] EXISTS FK AND INNER_CONNECTIONS
+                && (innerConnectionInfo = excelHeaderInnerConnections.get(column)) != null) {                               // [IF] EXISTS FK AND INNER_CONNECTIONS
 
             TableNameExcelData tableNameExcelDataFromInnerConnection = excelHeaderTable.stream()
-                    .filter(tableNameExcelData -> tableNameExcelData.equals(innerConnectionInfo[0]))        //TODO: MIRAR QUE ESTO DE VERDAD MIRA BIEN LAS PROPIEDADES
+                    .filter(tableNameExcelData -> tableNameExcelData.equals(innerConnectionInfo[0]))
                     .findFirst()
                     .orElse(null);
 
