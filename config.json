@@ -17,6 +17,10 @@
       {
         "name": "PASSWORD",
         "data": "masterkey"
+      },
+      {
+        "name": "CHARSET",
+        "data": "WIN1252"
       }
     ]
   },

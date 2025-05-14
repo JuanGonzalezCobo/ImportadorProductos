@@ -14,19 +14,19 @@ public class DataBaseConnection {
     private final Properties properties = new Properties();
 
     public DataBaseConnection(String[] data) {
-        connection = getConnection(data[0], data[1], data[2], data[3]);
+        connection = getConnection(data[0], data[1], data[2], data[3], data[4]);
     }
 
     //*************************************************************************
     //* CONNECTION HANDLER                                                    *
     //*************************************************************************
 
-    private Connection getConnection(String url, String database, String user, String password) {
+    private Connection getConnection(String url, String database, String user, String password, String charset) {
         Connection con = null;
         try {
             properties.setProperty("user", user);
             properties.setProperty("password", password);
-            properties.setProperty("lc_ctype", "WIN1252"); // PONERLO PARA QUE SE RELLENE EN EL ARCHIVO DE CONFIG.
+            properties.setProperty("lc_ctype", charset);
 
             con = DriverManager
                     .getConnection(url.concat(database), properties);

@@ -33,12 +33,12 @@ public class Repository {
     //***************
 
     private List<String> COLUMNS_EXCEL;
-    private List<String> ALL_TABLES_EXCEL;                                      // Vendrá de un set para que solo aparezcan las que existen
+    private List<String> ALL_TABLES_EXCEL;                                                                                  // Vendrá de un set para que solo aparezcan las que existen
 
-    private List<TableNameExcelData> TABLE_HEADERS_FROM_EXCEL;                  // Esto es la relación de columna principal con el nombre de la tabla de la que forma parte
-    private Map<String, String[]> FOREIGN_KEY_HEADERS_FROM_EXCEL;               // Estos son aquellos que tienen un foreign key
-    private Map<String, List<String[]>> INNER_DATA_HEADERS_FROM_EXCEL;          // Estos son aquellos que necesitan de otra columna para funcionar
-    private Queue<Map<String, Object[]>> DATA_FROM_EXCEL;                       // Los datos del excel
+    private List<TableNameExcelData> TABLE_HEADERS_FROM_EXCEL;                                                              // Esto es la relación de columna principal con el nombre de la tabla de la que forma parte
+    private Map<String, String[]> FOREIGN_KEY_HEADERS_FROM_EXCEL;                                                           // Estos son aquellos que tienen un foreign key
+    private Map<String, List<String[]>> INNER_DATA_HEADERS_FROM_EXCEL;                                                      // Estos son aquellos que necesitan de otra columna para funcionar
+    private Queue<Map<String, Object[]>> DATA_FROM_EXCEL;                                                                   // Los datos del excel
 
     //*************************************************************************
     //* CONSTRUCTOR                                                           *

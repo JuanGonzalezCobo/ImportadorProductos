@@ -10,6 +10,7 @@ public class AppConfig {
     public String DATABASE_NAME;
     public String USER;
     public String PASSWORD = "is2003";
+    public String CHARSET = "WIN1252";
 
     public void setDatabaseConfig(DbData[] data) {
         URL = data[0].getData();
@@ -17,5 +18,7 @@ public class AppConfig {
         USER = data[2].getData();
         String password = data[3].getData();
         if (!password.isEmpty()) PASSWORD = password;
+        String charset = data[4].getData();
+        if (!charset.isEmpty()) CHARSET = charset;
     }
 }

@@ -1,5 +1,10 @@
 package app;
 
-public class AppState {
+import lombok.Getter;
+import lombok.Setter;
 
+public class AppState {
+    @Getter
+    @Setter
+    boolean isAdding = true;
 }

@@ -57,6 +57,7 @@ public class FilesSetterController {
                 CONFIG.DATABASE_NAME,
                 CONFIG.USER,
                 CONFIG.PASSWORD,
+                CONFIG.CHARSET
         };
     }
 

@@ -54,6 +54,7 @@ public class MainController {
                 CONFIG.DATABASE_NAME,
                 CONFIG.USER,
                 CONFIG.PASSWORD,
+                CONFIG.CHARSET
         };
     }
 
@@ -122,7 +123,8 @@ public class MainController {
                 if (lastestTableName != null && !lastestTableName.equals(tableName)) {
                     if (!DATA_TO_INSERT_INTO_DB.get(lastestTableName).isEmpty()) {
                         if (config.get(lastestTableName) != null) {
-                            Map<String, Object[]> dataToInsertAux = new HashMap<>(DATA_TO_INSERT_INTO_DB.get(lastestTableName));
+                            Map<String, Object[]> dataToInsertAux = new HashMap<>(DATA_TO_INSERT_INTO_DB
+                                    .get(lastestTableName));
                             addLastInfoFromConfig(dataToInsertAux, dataPerTableConfig.get(lastestTableName));
                             DATA_TO_INSERT_INTO_DB.put(lastestTableName, dataToInsertAux);
                             dataPerTableConfig.remove(lastestTableName);
@@ -332,38 +334,36 @@ public class MainController {
     ) {
         Map<String, Object[]> FOREIGN_KEY_INSERT_NEW_REGISTRY = new LinkedHashMap<>();
         List<Data> foreignKeyDataFromConfig = null;
-        // COMPROBAMOS QUE EXISTA INFORMACION EN EL ARCHIVO DE CONFIGURACIÓN
-        if (config.get(foreignKeyInfo[0]) != null) {
-            // AÑADIMOS LO NECESARIO DEL ARCHIVO DE CONFIGURACIÓN
-            foreignKeyDataFromConfig = new ArrayList<>(Arrays.stream(config.get(foreignKeyInfo[0])).toList());
+
+        if (config.get(foreignKeyInfo[0]) != null) {                                                                        // [IF] CHECK THERE'S INFO IN THE CONFIG FILE
+            foreignKeyDataFromConfig = new ArrayList<>(Arrays.stream(config.get(foreignKeyInfo[0])).toList());                  // ADDS IT
         }
 
-        if (hasInnerConnections) {
+        if (hasInnerConnections) {                                                                                          // [IF] THERE'S INNER_CONNECTIONS
             Object[] infoToInsert;
 
-            if ((infoToInsert = DATA_TO_INSERT_INTO_DB
+            if ((infoToInsert = DATA_TO_INSERT_INTO_DB                                                                          // [IF] INFO FROM THE OTHER COLUMNS ADDS IT
                     .get(innerConnection[1])
                     .get(innerConnection[0])) != null) {
 
-                // AÑADIMOS LOS INNER_CONNECTIONS
-                        FOREIGN_KEY_INSERT_NEW_REGISTRY.put(
-                                innerConnection[2],
-                                infoToInsert
-                        );
+                FOREIGN_KEY_INSERT_NEW_REGISTRY.put(
+                        innerConnection[2],
+                        infoToInsert
+                );
 
-            } else {
+            } else {                                                                                                            // [ELSE] THERE'S NO DATA FROM IT, ERROR IS THROWN, BAD ORDER IN THE EXCEL FILE
                         System.out.println("[ERROR] Revise el orden del excel porque" +
                                 " no se pudo obtener el dato de la columna" + columnName);
                         System.exit(1);
             }
 
-            if (foreignKeyDataFromConfig != null && !foreignKeyDataFromConfig.isEmpty()) {
+            if (foreignKeyDataFromConfig != null && !foreignKeyDataFromConfig.isEmpty()) {                                      // IT ERASE IT FROM CONFIG FILE LIST DATA
                 eraseFromConfigList(foreignKeyDataFromConfig, innerConnection[2]);
             }
         }
 
-        // AÑADIMOS EL DATO DEL EXCEL
-        FOREIGN_KEY_INSERT_NEW_REGISTRY.put(foreignKeyInfo[2],
+
+        FOREIGN_KEY_INSERT_NEW_REGISTRY.put(foreignKeyInfo[2],                                                              // ADDS DATA
                 new Object[]{
                         data[0],
                         data[1]
@@ -371,20 +371,18 @@ public class MainController {
 
         try {
             if (foreignKeyDataFromConfig != null) {
-                eraseFromConfigList(foreignKeyDataFromConfig, foreignKeyInfo[2]);
+                eraseFromConfigList(foreignKeyDataFromConfig, foreignKeyInfo[2]);                                           // IT TRIES TO ERASE IT FROM CONFIG FILE LIST DATA
             }
         } catch (Exception e) {
             System.out.println("[ERROR]: No se eliminó ningún valor de la lista para" +
                     " la creación de un nuevo registro en tabla foránea");
         }
 
-
-        // AÑADIMOS LO QUE QUEDA DE LA LISTA DE CONFIGURACIÓN
         if (foreignKeyDataFromConfig != null && !foreignKeyDataFromConfig.isEmpty()) {
-            addLastInfoFromConfig(FOREIGN_KEY_INSERT_NEW_REGISTRY, foreignKeyDataFromConfig);
+            addLastInfoFromConfig(FOREIGN_KEY_INSERT_NEW_REGISTRY, foreignKeyDataFromConfig);                               // ADDS THE DATA FROM CONFIG TABLE THAT WASN'T DELETED
         }
 
-        createNewRegistry(foreignKeyInfo[0], FOREIGN_KEY_INSERT_NEW_REGISTRY);
+        createNewRegistry(foreignKeyInfo[0], FOREIGN_KEY_INSERT_NEW_REGISTRY);                                              // CREATES NEW REGISTRY
     }
 
     private String getTableName(List<TableNameExcelData> list, String columnName) {
