@@ -180,7 +180,7 @@ public class ExcelFileManager {
         if (DateUtil.isCellDateFormatted(cell)) {
             newValue = new Object[]{
                     Types.DATE,
-                    cell.getDateCellValue()                                     //  TODO MIRAR COMO SE PONEN LAS FECHAS
+                    cell.getDateCellValue()
             };
         } else {
             DataFormatter dataFormatter = new DataFormatter();

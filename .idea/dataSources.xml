@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
-    <data-source source="LOCAL" name="EMPRE001.GDB@localhost" uuid="56b326f9-0610-480b-8f49-1e11c40336fb">
+    <data-source source="LOCAL" name="EMPRE001.GDB@localhost" uuid="791335bf-281e-4360-89bb-6e4fa23ae097">
       <driver-ref>firebird</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>org.firebirdsql.jdbc.FBDriver</jdbc-driver>

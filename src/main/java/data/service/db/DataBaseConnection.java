@@ -50,8 +50,6 @@ public class DataBaseConnection {
     //* DATABASE METHODS                                                      *
     //*************************************************************************
 
-    //Quitar el nombre de la base de datos para poder jugar con la parte de firebird
-
     public boolean tableExists(String tableName) {
         try {
             DatabaseMetaData dbmd = connection.getMetaData();
@@ -98,7 +96,7 @@ public class DataBaseConnection {
             while (r.next()) {
                 columns.add(
                         new Column(r.getString(4),   //Column name
-                                r.getString(5))     //Column type
+                                r.getString(5))      //Column type
                 );
             }
         } catch (SQLException e) {
@@ -128,7 +126,7 @@ public class DataBaseConnection {
         return foreignKeys;
     }
 
-    public int[] getIdentifierColumn(Object data, String tableName, String pk, String columnName) {
+    public int[] getPKFromFTWithoutInnerConnection(Object data, String tableName, String pk, String columnName) {
         final StringBuilder SQL = new StringBuilder("SELECT " + pk + " FROM " + tableName + " WHERE " + columnName + " = ");
 
         Column[] columns = getAllColumns(tableName);
@@ -152,6 +150,39 @@ public class DataBaseConnection {
 
             int[] returnValue = new int[]{0, -1};
             ResultSet rs = stmt.executeQuery(SQL.toString());
+            if (rs.next()) {
+                returnValue = new int[]{1, rs.getInt(1)};
+            }
+            return returnValue;
+
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+            return null;
+        }
+    }
+
+    public int[] getPKFromFTWithInnerConnection(String[] innerConnectionData, String[] columnData) {
+        final StringBuilder SQL = new StringBuilder("SELECT tabla1." + columnData[1] +
+                " FROM " + columnData[0] + " tabla1" +
+                " JOIN " + innerConnectionData[0] + " tabla2 ON tabla2." + innerConnectionData[2] + " = tabla1." + columnData[2] +
+                " WHERE tabla1." + columnData[3] + " = ");
+
+        addInStringBuilder(SQL, new Object[]{
+                columnData[4],
+                columnData[5]
+        });
+
+        SQL.append(" AND tabla2." + innerConnectionData[2] + " = ");
+
+        addInStringBuilder(SQL, new Object[]{
+                innerConnectionData[3],
+                innerConnectionData[4]
+        });
+
+        // Son 11 los strings.
+        try (Statement statement = connection.createStatement()) {
+            int[] returnValue = new int[]{0, -1};
+            ResultSet rs = statement.executeQuery(SQL.toString());
             if (rs.next()) {
                 returnValue = new int[]{1, rs.getInt(1)};
             }
@@ -212,17 +243,8 @@ public class DataBaseConnection {
         SQL.append(") VALUES ( ");
 
         for (Object[] value : values.values()) {
-            switch ((Integer) value[0]) {
-                case Types.FLOAT,
-                     Types.DOUBLE,
-                     Types.DECIMAL,
-                     Types.INTEGER,
-                     Types.BIGINT,
-                     Types.SMALLINT,
-                     Types.TINYINT,
-                     Types.BOOLEAN -> SQL.append(value[1]);
-                default -> SQL.append("'").append(value[1].toString()).append("'");
-            }
+
+            addInStringBuilder(SQL, value);
 
             if (value != values.values().stream().toList().getLast()) {
                 SQL.append(", ");
@@ -242,41 +264,46 @@ public class DataBaseConnection {
         if (values.isEmpty()) {
             System.out.println("No existen valores en el mapa para comprobar si ya existe en la tabla " + tableName);
             System.exit(1);
-            return false;
+            return true;
         }
         boolean isFirstInteration = true;
         final StringBuilder SQL = new StringBuilder("SELECT COUNT(*) FROM " + tableName + " WHERE ");
 
         for (String keys : values.keySet()) {
+            Object[] value = values.get(keys);
+            if (keys.contains("FECHA")) continue;
             if (isFirstInteration) {
                 isFirstInteration = false;
             } else {
                 SQL.append(" AND ");
             }
-            Object[] value = values.get(keys);
             SQL.append(keys).append(" = ");
-            switch ((Integer) value[0]) {
-                case Types.FLOAT,
-                     Types.DOUBLE,
-                     Types.DECIMAL,
-                     Types.INTEGER,
-                     Types.BIGINT,
-                     Types.SMALLINT,
-                     Types.TINYINT,
-                     Types.BOOLEAN -> SQL.append(value[1]);
-                default -> SQL.append("'").append(value[1].toString()).append("'");
-            }
+            addInStringBuilder(SQL, value);
         }
 
         try (Statement statement = connection.createStatement();
              ResultSet resultSet = statement.executeQuery(SQL.toString())) {
             if (resultSet.next()) {
-                return resultSet.getInt("COUNT") != 0;
+                return resultSet.getInt("COUNT") == 0;
             } else {
-                return false;
+                return true;
             }
         } catch (SQLException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    private void addInStringBuilder(StringBuilder sql, Object[] value) {
+        switch (Integer.parseInt(value[0].toString())) {
+            case Types.FLOAT,
+                 Types.DOUBLE,
+                 Types.DECIMAL,
+                 Types.INTEGER,
+                 Types.BIGINT,
+                 Types.SMALLINT,
+                 Types.TINYINT,
+                 Types.BOOLEAN -> sql.append(value[1]);
+            default -> sql.append("'").append(value[1].toString()).append("'");
         }
     }
 }

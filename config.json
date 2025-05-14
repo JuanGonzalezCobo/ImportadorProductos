@@ -1278,6 +1278,16 @@
             "type": "str"
           }
         ]
+      },
+      {
+        "name": "CUENTAS",
+        "data": [
+          {
+            "name": "CERRADO",
+            "type": "int",
+            "data": 0
+          }
+        ]
       }
     ]
   }

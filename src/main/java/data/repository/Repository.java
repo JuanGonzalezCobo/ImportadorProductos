@@ -1,10 +1,7 @@
 package data.repository;
 
 import app.AppConsoleStyle;
-import data.model.Data;
-import data.model.DbData;
-import data.model.IncreaseData;
-import data.model.TableData;
+import data.model.*;
 import data.service.config.ClassType;
 import data.service.excel.ExcelFileManager;
 
@@ -36,12 +33,12 @@ public class Repository {
     //***************
 
     private List<String> COLUMNS_EXCEL;
-    private List<String> ALL_TABLES_EXCEL;                                      //Vendrá de un set para que solo aparezcan las que existen
+    private List<String> ALL_TABLES_EXCEL;                                      // Vendrá de un set para que solo aparezcan las que existen
 
-    private Map<String, String> TABLE_HEADERS_FROM_EXCEL;                       //Esto es la relación de columna principal con el nombre de la tabla de la que forma parte
-    private Map<String, String[]> FOREIGN_KEY_HEADERS_FROM_EXCEL;               //Estos son aquellos que tienen un foreign key
-    private Map<String, List<String[]>> INNER_DATA_HEADERS_FROM_EXCEL;          //Estos son aquellos que necesitan de otra columna para funcionar
-    private Queue<Map<String, Object[]>> DATA_FROM_EXCEL;                       //Los datos del excel
+    private List<TableNameExcelData> TABLE_HEADERS_FROM_EXCEL;                  // Esto es la relación de columna principal con el nombre de la tabla de la que forma parte
+    private Map<String, String[]> FOREIGN_KEY_HEADERS_FROM_EXCEL;               // Estos son aquellos que tienen un foreign key
+    private Map<String, List<String[]>> INNER_DATA_HEADERS_FROM_EXCEL;          // Estos son aquellos que necesitan de otra columna para funcionar
+    private Queue<Map<String, Object[]>> DATA_FROM_EXCEL;                       // Los datos del excel
 
     //*************************************************************************
     //* CONSTRUCTOR                                                           *
@@ -64,7 +61,7 @@ public class Repository {
     //***************
 
     private Map<String, IncreaseData> setIncreaseConfig() {
-        Map<String, IncreaseData> increaseConfig = new HashMap<>();
+        Map<String, IncreaseData> increaseConfig = new LinkedHashMap<>();
         for (IncreaseData increaseData : (IncreaseData[]) SECTIONS_CONFIG.get("Incrementos")) {
             Double auxData = (Double) increaseData.getData();
             increaseData.setData(auxData.intValue());
@@ -74,7 +71,7 @@ public class Repository {
     }
 
     private Map<String, Data[]> setTablesConfig() {
-        Map<String, Data[]> tablesConfig = new HashMap<>();
+        Map<String, Data[]> tablesConfig = new LinkedHashMap<>();
 
         for (TableData eachTableData : (TableData[]) SECTIONS_CONFIG.get("Tablas")) {
             for (Data eachColumn : eachTableData.getData()) {
@@ -135,25 +132,26 @@ public class Repository {
         return tables.stream().toList();
     }
 
-    private Map<String, String> setExcelsHeaderTables(List<List<Object[]>> data, ExcelFileManager EXCEL_FILE_MANAGER) {
-        Map<String, String> headerTable = new HashMap<>();
+    private List<TableNameExcelData> setExcelsHeaderTables(List<List<Object[]>> data, ExcelFileManager EXCEL_FILE_MANAGER) {
+        List<TableNameExcelData> tableNameExcelData = new ArrayList<>();
         for (int i = 0; i < data.get(EXCEL_FILE_MANAGER.headersRow).size(); i++) {
-            headerTable.put((String) data.get(EXCEL_FILE_MANAGER.headersRow).get(i)[1],
-                    (String) data.get(EXCEL_FILE_MANAGER.headersRow - 1).get(i)[1]);
+            tableNameExcelData.add(new TableNameExcelData(
+                    (String) data.get(EXCEL_FILE_MANAGER.headersRow).get(i)[1],
+                    (String) data.get(EXCEL_FILE_MANAGER.headersRow - 1).get(i)[1]
+            ));
         }
-
-        return headerTable;
+        return tableNameExcelData;
     }
 
     private Map<String, String[]> setExcelsHeaderForeignKeys(List<List<Object[]>> data, ExcelFileManager EXCEL_FILE_MANAGER) {
-        Map<String, String[]> header = new HashMap<>();
+        Map<String, String[]> header = new LinkedHashMap<>();
 
         for (int i = 0; i < data.getFirst().size(); i++) {
             if (data.get(EXCEL_FILE_MANAGER.headersRow - 2).get(i) != null) {
                 header.put((String) data.get(EXCEL_FILE_MANAGER.headersRow).get(i)[1], new String[]{
-                        (String) data.get(EXCEL_FILE_MANAGER.headersRow - 2).get(i)[1],    // Tabla referenciada
-                        (String) data.get(EXCEL_FILE_MANAGER.headersRow - 3).get(i)[1],    // Columna de tabla referenciada
-                        (String) data.get(EXCEL_FILE_MANAGER.headersRow - 4).get(i)[1]     // Columna que iguala el valor de la columna del excel
+                        (String) data.get(EXCEL_FILE_MANAGER.headersRow - 2).get(i)[1],                                     // TABLA REFERENCIADA
+                        (String) data.get(EXCEL_FILE_MANAGER.headersRow - 3).get(i)[1],                                     // COLUMNA DE LA TABLA REFERENCIADA
+                        (String) data.get(EXCEL_FILE_MANAGER.headersRow - 4).get(i)[1]                                      // COLUMNA QUE IGUALA EL VALOR DE LA COLUMNA DEL EXCEL
                 });
             }
         }
@@ -161,20 +159,20 @@ public class Repository {
     }
 
     private Map<String, List<String[]>> setExcelHeaderInnerConnections(List<List<Object[]>> data, ExcelFileManager EXCEL_FILE_MANAGER) {
-        Map<String, List<String[]>> header = new HashMap<>();
+        Map<String, List<String[]>> header = new LinkedHashMap<>();
 
         if (EXCEL_FILE_MANAGER.headersRow != 4) {
             for (int i = 0; i < data.getFirst().size(); i++) {
                 List<String[]> innerConnections = new ArrayList<>();
                 if (data.get(EXCEL_FILE_MANAGER.headersRow - 5).get(i) == null) continue;
 
-                for (int j = 0; j < (EXCEL_FILE_MANAGER.headersRow - 4) / 2; j++) {
-                    if (data.get(EXCEL_FILE_MANAGER.headersRow - 5 - j * 2).get(i) == null) continue;
+                for (int j = 0; j < (EXCEL_FILE_MANAGER.headersRow - 4) / 3; j++) {
+                    if (data.get(EXCEL_FILE_MANAGER.headersRow - 5 - j * 3).get(i) == null) continue;
                     innerConnections.add(new String[]{
-                                    (String) data.get(EXCEL_FILE_MANAGER.headersRow - 5 - j * 2).get(i)[1], //Nombre de la columna en excel
-                                    (String) data.get(EXCEL_FILE_MANAGER.headersRow - 6 - j * 2).get(i)[1]  //Nombre de la columna en la tabla referenciada
-                            }
-                    );
+                            (String) data.get(EXCEL_FILE_MANAGER.headersRow - 5 - j * 3).get(i)[1],                         // NOMBRE DE LA COLUMNA EN EL EXCEL
+                            (String) data.get(EXCEL_FILE_MANAGER.headersRow - 6 - j * 3).get(i)[1],                         // NOMBRE DE LA TABLA DE LA COLUMNA EN EL EXCEL
+                            (String) data.get(EXCEL_FILE_MANAGER.headersRow - 7 - j * 3).get(i)[1]                          // NOMBRE DE LA COLUMNA EN LA BD DE LA TABLA FK
+                    });
                 }
                 header.put((String) data.get(EXCEL_FILE_MANAGER.headersRow).get(i)[1], innerConnections);
             }

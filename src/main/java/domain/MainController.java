@@ -5,6 +5,7 @@ import app.AppConfig;
 import app.AppState;
 import data.model.Data;
 import data.model.IncreaseData;
+import data.model.TableNameExcelData;
 import data.repository.Repository;
 import data.service.config.ConfigFileManager;
 import data.service.db.DataBaseConnection;
@@ -73,36 +74,50 @@ public class MainController {
     private void mainInsertInDB() {
         Map<String, Object[]> dataRow;
 
-        List<String> excelAllTablesHeaders;
+        List<String> excelAllTablesHeaders;                                                                                 // LISTA QUE VIENE DEL SET DONDE APARECEN TODAS LAS TABLAS
+        List<TableNameExcelData> excelHeaderTable;                                                                          // LISTA DE LAS TABLAS REFERENCIADAS A LAS COLUMNAS
+        Map<String, String[]> excelHeaderForeignKey = REPOSITORY.getFOREIGN_KEY_HEADERS_FROM_EXCEL();                       // MAPA DE LAS FK, CON _KEYS_ COMO LAS COLUMNAS DEL EXCEL
+        Map<String, List<String[]>> excelHeaderInnerConnections = REPOSITORY.getINNER_DATA_HEADERS_FROM_EXCEL();            // MAPA DE LOS INNER_CONNECTIONS, CON _KEYS_ COMO LAS COLUMNAS DEL EXCEL
+        Map<String, Data[]> config = REPOSITORY.getDEFAULT_TABLES_DATA_FROM_CONFIG();                                       // MAPA DE LOS DATOS DE LAS TABLAS EN EL ARCHIVO DE config.json
 
-        Map<String, String> excelHeaderTable = REPOSITORY.getTABLE_HEADERS_FROM_EXCEL();
-        Map<String, String[]> excelHeaderForeignKey = REPOSITORY.getFOREIGN_KEY_HEADERS_FROM_EXCEL();
-        Map<String, List<String[]>> excelHeaderInnerConnections = REPOSITORY.getINNER_DATA_HEADERS_FROM_EXCEL();
-        Map<String, Data[]> config = REPOSITORY.getDEFAULT_TABLES_DATA_FROM_CONFIG();
+        Map<String, List<Data>> dataPerTableConfig = new LinkedHashMap<>();                                                 // MAPA DE LOS DATOS QUE HAY EN ARCHIVO config.json, CON _KEYS_ COMO LA TABLA
 
-        Map<String, List<Data>> dataPerTableConfig = new LinkedHashMap<>();
-
-        String tableName = null;
+        String tableName = null;                                                                                            // STRING, NOMBRE DE LA TABLA POR COLUMNA
 
         while ((dataRow = REPOSITORY.getDATA_FROM_EXCEL().poll()) != null) {
 
-            // INITIALIZATION OF REQUIRED COMPONENTS
-            excelAllTablesHeaders = REPOSITORY.getALL_TABLES_EXCEL();
+            //*************************************************
+            //*  INITIALIZATION OF REQUIRED COMPONENTS        *
+            //*************************************************
 
             DATA_TO_INSERT_INTO_DB.clear();
+
+            excelAllTablesHeaders = REPOSITORY.getALL_TABLES_EXCEL();
+            excelHeaderTable = new ArrayList<>(REPOSITORY.getTABLE_HEADERS_FROM_EXCEL());
+
             for (String table : excelAllTablesHeaders) {
                 DATA_TO_INSERT_INTO_DB.put(table, new LinkedHashMap<>());
-            }
-
-            for (String tablePerExcelColumns : excelAllTablesHeaders) {
-                if (config.get(tablePerExcelColumns) != null) {
-                    dataPerTableConfig.put(tablePerExcelColumns, Arrays.stream(config.get(tablePerExcelColumns)).toList());
+                if (config.get(table) != null) {
+                    dataPerTableConfig.put(table, Arrays.stream(config.get(table)).toList());
                 }
             }
 
+            //*************************************************
+            //*    LOOP FOR EACH COLUMN IN THE EXCEL FILE     *
+            //*************************************************
+
             for (String columnName : REPOSITORY.getCOLUMNS_EXCEL()) {
+
+                //*************************************************
+                //*    GETTING THE NAME OF THE COLUMN'S TABLE     *
+                //*************************************************
+
                 String lastestTableName = tableName;
-                tableName = excelHeaderTable.get(columnName);
+                tableName = getTableName(excelHeaderTable, columnName);
+
+                //*************************************************
+                //*    INSERT OF REGISTRY WITH SAME TABLE NAME    *
+                //*************************************************
 
                 if (lastestTableName != null && !lastestTableName.equals(tableName)) {
                     if (!DATA_TO_INSERT_INTO_DB.get(lastestTableName).isEmpty()) {
@@ -112,50 +127,61 @@ public class MainController {
                             DATA_TO_INSERT_INTO_DB.put(lastestTableName, dataToInsertAux);
                             dataPerTableConfig.remove(lastestTableName);
                         }
-                        if (!DB_CONNECTION.checkIfAlreadyExists(lastestTableName, DATA_TO_INSERT_INTO_DB.get(lastestTableName)))
-                            createNewRegistry(lastestTableName, DATA_TO_INSERT_INTO_DB.get(lastestTableName));
+                        if (DB_CONNECTION.checkIfAlreadyExists(
+                                lastestTableName,
+                                DATA_TO_INSERT_INTO_DB.get(lastestTableName))
+                        ) createNewRegistry(lastestTableName, DATA_TO_INSERT_INTO_DB.get(lastestTableName));
                     }
                 }
 
                 Object[] infoToInsert;
 
-                if (dataRow.get(columnName) == null) {  //  ESTÁ VACÍO EL CAMPO EN EL EXCEL
+                if (dataRow.get(columnName) == null) {                                                                      // [IF] EMPTY EXCEL CELL
                     Data columnInfoFromConfig = null;
-                    // PRIMERO BUSCAMOS EN EL FILE_CONFIG
-                    if (dataPerTableConfig.get(tableName) != null && !dataPerTableConfig.get(tableName).isEmpty()) {
+
+                    if (dataPerTableConfig.get(tableName) != null && !dataPerTableConfig.get(tableName).isEmpty()) {            // WE SEARCH IT ON CONFIG FILE
                         columnInfoFromConfig = dataPerTableConfig.get(tableName).stream()
                                 .filter(data -> data.getName().equals(columnName))
                                 .findFirst()
                                 .orElse(null);
                     }
 
-                    // SI NO ENCUENTRA NADA, ENTONCES CONTINUA CON LA SIGUIENTE COLUMNA DEL EXCEL.
-                    if (columnInfoFromConfig == null || columnInfoFromConfig.getData() == null) continue;
 
-                    // SI ENCUENTRA QUE SE AÑADA
-                    infoToInsert = createDataToInsert(
+                    if (columnInfoFromConfig == null || columnInfoFromConfig.getData() == null)                                 // [IF] THERE ISN'T DATA IN CONFIG FILE
+                        continue;
+
+
+                    infoToInsert = createDataToInsert(                                                                          // [ELSE] THERE'S DATA IN CONFIG FILE (ADDS IT)
                             config,
                             excelHeaderForeignKey,
                             excelHeaderInnerConnections,
-                            excelHeaderTable,
+                            REPOSITORY.getTABLE_HEADERS_FROM_EXCEL(),
                             columnName,
                             new Object[]{columnInfoFromConfig.getType(), columnInfoFromConfig.getData()}
                     );
 
-                } else { // NO ESTA VACÍO EL CAMPO EN EL EXCEL
+                } else {                                                                                                    // [ELSE] NOT EMPTY CELL IN EXCEL
                     infoToInsert = createDataToInsert(
                             config,
                             excelHeaderForeignKey,
                             excelHeaderInnerConnections,
-                            excelHeaderTable,
+                            REPOSITORY.getTABLE_HEADERS_FROM_EXCEL(),
                             columnName,
                             dataRow.get(columnName)
                     );
                 }
-                // INSERTAMOS EN EL MAPA PARA LUEGO CREAR EL NUEVO REGISTRO
+
+
+                //*************************************************
+                //*        INSERT INTO THE INSERTION MAP          *
+                //*************************************************
+
                 DATA_TO_INSERT_INTO_DB.get(tableName).put(columnName, infoToInsert);
 
-                // BORRAMOS EL VALOR QUE ESTÁ DENTRO DE LA LISTA DE CONFIGURACIÓN PARA QUE NO HAYA REPETICIONES
+                //*********************************************************
+                //* DELETE VALUE FROM CONFIG LIST TO NOT GET DOUBLED DATA *
+                //*********************************************************
+
                 try {
                     List<Data> modifiedList;
                     if (dataPerTableConfig.get(tableName) != null) {
@@ -164,54 +190,117 @@ public class MainController {
                         dataPerTableConfig.put(tableName, modifiedList);
                     }
                 } catch (Exception e) {
-                    System.out.println(e.getMessage()); // CAMBIAR CODIGO
+                    System.out.println("[ERROR] No se ha borrado de la configuración datos de la tabla principal");
                 }
+
+                //*********************************************************
+                //* DELETE VALUE FROM TABLE LIST TO NOT GET DOUBLED DATA  *
+                //*********************************************************
+
+                eraseFromTableList(excelHeaderTable, tableName, columnName);
             }
-            /*
-                AL FINAL SE COMPRUEBA EL ARCHIVO DE CONFIGURACION, QUE NO TENGA MÁS COSAS,
-                SI NO ES EL CASO, QUE TERMINE POR IMPORTANDOLO PARA PONERLO EN EL INSERT DE LA DB
-            */
+
+            //*********************************************************
+            //*  THIS ONLY HAPPENS WHEN IS THE LAST TABLE IN EXCEL,   *
+            //*  IT ADDS THE DATA FROM CONFIG TABLE THAT WASN'T       *
+            //*  DELETED, TO INSERT IT INTO THE INSERTION MAP         *
+            //*********************************************************
+
             if (!DATA_TO_INSERT_INTO_DB.get(tableName).isEmpty()) {
                 if (dataPerTableConfig.get(tableName) != null && !dataPerTableConfig.get(tableName).isEmpty()) {
                     Map<String, Object[]> dataToInsertAux = DATA_TO_INSERT_INTO_DB.get(tableName);
                     addLastInfoFromConfig(dataToInsertAux, dataPerTableConfig.get(tableName));
                     DATA_TO_INSERT_INTO_DB.put(tableName, dataToInsertAux);
                 }
-                // CREAMOS EL NUEVO REGISTRO EN LA BASE DE DATOS
-                if (!DB_CONNECTION.checkIfAlreadyExists(tableName, DATA_TO_INSERT_INTO_DB.get(tableName)))
+
+                if (DB_CONNECTION.checkIfAlreadyExists(tableName, DATA_TO_INSERT_INTO_DB.get(tableName)))
+                    // IF EVERYTHING'S OK IT WILL INSERT IN INTO THE DB
                     createNewRegistry(tableName, DATA_TO_INSERT_INTO_DB.get(tableName));
             }
         }
     }
 
+
     private Object[] createDataToInsert(
             Map<String, Data[]> config,
             Map<String, String[]> excelHeaderForeignKey,
             Map<String, List<String[]>> excelHeaderInnerConnections,
-            Map<String, String> excelHeaderTable,
+            List<TableNameExcelData> excelHeaderTable,
             String columnName,
             Object[] data
     ) {
-        Object[] infoToInsert;
+        Object[] infoToInsert = new Object[2];
         String[] foreignKeyInfo;
-        if ((foreignKeyInfo = excelHeaderForeignKey.get(columnName)) != null) { // EXISTE UNA FOREIGN KEY EN EL EXCEL
+        List<String[]> innerConnectionInfo;
+        int[] newData;
 
-            //COMPROBAMOS QUE EXISTE EN LA TABLA REFERENTE EN LA BASE DE DATOS.
-            int[] newData = DB_CONNECTION
-                    .getIdentifierColumn(data[1],
+        if ((foreignKeyInfo = excelHeaderForeignKey.get(columnName)) != null
+                && (innerConnectionInfo = excelHeaderInnerConnections.get(columnName)) != null) {                           // [IF] EXISTS FK AND INNER_CONNECTIONS
+
+
+            for (String[] innerConnection : innerConnectionInfo) {      // TODO CAMBIARLO PARA SI HAY MÁS
+                Object[] dataFromExcel = DATA_TO_INSERT_INTO_DB
+                        .get(getTableName(excelHeaderTable, columnName))
+                        .get(innerConnection[0]);
+
+                String[] innerConnectionColumnData = new String[]{
+                        excelHeaderForeignKey.get(innerConnection[0])[0],
+                        excelHeaderForeignKey.get(innerConnection[0])[2],
+                        excelHeaderForeignKey.get(innerConnection[0])[1],
+                        dataFromExcel[0].toString(),
+                        dataFromExcel[1].toString()
+                };
+
+                String[] columnData = new String[]{
+                        foreignKeyInfo[0],
+                        foreignKeyInfo[1],
+                        innerConnection[2],
+                        foreignKeyInfo[2],
+                        data[0].toString(),
+                        data[1].toString()
+                };
+
+                newData = DB_CONNECTION.getPKFromFTWithInnerConnection(innerConnectionColumnData, columnData);                  // CHECK IF THE FK EXISTS IN THE FK TABLE
+
+                if (newData[0] == 0) {                                                                                          // [IF] DOES NOT EXIST
+
+                    createNewRegistryInForeignTable(                                                                                // CREATES A NEW REGISTRY IN FK TABLE
+                            config,
+                            innerConnection,
+                            excelHeaderTable,
+                            foreignKeyInfo,
+                            data,
+                            columnName,
+                            true
+                    );
+
+                    newData = DB_CONNECTION.getPKFromFTWithInnerConnection(innerConnectionColumnData, columnData);
+                }
+
+                infoToInsert = new Object[]{Types.INTEGER, newData[1]};
+            }
+        } else if (foreignKeyInfo != null) {                                                                                // [ELSE-IF] EXISTS ONLY A FK
+
+            newData = DB_CONNECTION                                                                                         // CHECK IF THE FK EXISTS IN THE FK TABLE
+                    .getPKFromFTWithoutInnerConnection(data[1],
                             foreignKeyInfo[0],
                             foreignKeyInfo[1],
                             foreignKeyInfo[2]
                     );
 
-            if (newData[0] == 0) {  // NO EXISTE
-                createNewRegistryInForeignTable(config,
-                        excelHeaderInnerConnections,
+            if (newData[0] == 0) {                                                                                              // [IF] DOES NOT EXIST
+
+                createNewRegistryInForeignTable(                                                                                    // CREATES A NEW REGISTRY IN FK TABLE
+                        config,
+                        null,
                         excelHeaderTable,
                         foreignKeyInfo,
                         data,
-                        columnName);
-                newData = DB_CONNECTION.getIdentifierColumn(data[1],
+                        columnName,
+                        false
+                );
+
+                newData = DB_CONNECTION.getPKFromFTWithoutInnerConnection(data[1],
                         foreignKeyInfo[0],
                         foreignKeyInfo[1],
                         foreignKeyInfo[2]
@@ -220,72 +309,75 @@ public class MainController {
             }
 
             infoToInsert = new Object[]{Types.INTEGER, newData[1]};
-        } else { // NO EXISTE LA FOREIGN KEY EN EL EXCEL
-            // SE AÑADE SIMPLEMENTE
+
+        } else {                                                                                                            // [ELSE] DOES NOT EXIST ANY OF THEM
+
             infoToInsert = new Object[]{
                     data[0],
                     data[1]
             };
         }
 
-        // TODO: AÑADIR AQUI LO DE LOS INNER_CONNECTIONS
-
         return infoToInsert;
     }
 
     private void createNewRegistryInForeignTable(
             Map<String, Data[]> config,
-            Map<String, List<String[]>> excelHeaderInnerConnections,
-            Map<String, String> excelHeaderTable,
+            String[] innerConnection,
+            List<TableNameExcelData> excelHeaderTable,
             String[] foreignKeyInfo,
             Object[] data,
-            String columnName
+            String columnName,
+            boolean hasInnerConnections
     ) {
         Map<String, Object[]> FOREIGN_KEY_INSERT_NEW_REGISTRY = new LinkedHashMap<>();
-        List<String[]> innerConnections;
         List<Data> foreignKeyDataFromConfig = null;
         // COMPROBAMOS QUE EXISTA INFORMACION EN EL ARCHIVO DE CONFIGURACIÓN
         if (config.get(foreignKeyInfo[0]) != null) {
             // AÑADIMOS LO NECESARIO DEL ARCHIVO DE CONFIGURACIÓN
             foreignKeyDataFromConfig = new ArrayList<>(Arrays.stream(config.get(foreignKeyInfo[0])).toList());
         }
-        try {   //TODO: SACARLO A UN METODO DIFERENTE PARA PODER USARLO POR SI NO EXITE FK PERO SI INNER_CONNECTION
-            //MIRAMOS QUE EXISTAN MÁS DATOS, LOS DEL INNER_CONNECTION PARA SER EXACTOS
-            if ((innerConnections = excelHeaderInnerConnections.get(columnName)) != null) { // ESTO ES QUE HAYA INNER CONNECTIONS
-                for (String[] innerConnection : innerConnections) {
-                    Object[] infoToInsert;
-                    if ((infoToInsert = DATA_TO_INSERT_INTO_DB
-                            .get(excelHeaderTable.get(innerConnection[0]))
-                            .get(innerConnection[0])) != null) {
-                        // AÑADIMOS LOS INNER_CONNECTIONS
+
+        if (hasInnerConnections) {
+            Object[] infoToInsert;
+
+            if ((infoToInsert = DATA_TO_INSERT_INTO_DB
+                    .get(innerConnection[1])
+                    .get(innerConnection[0])) != null) {
+
+                // AÑADIMOS LOS INNER_CONNECTIONS
                         FOREIGN_KEY_INSERT_NEW_REGISTRY.put(
-                                innerConnection[1],
+                                innerConnection[2],
                                 infoToInsert
                         );
 
-                    } else {
-                        System.out.println("[ERROR] Revise el orden del excel porque no se pudo obtener el dato de la columna" + columnName);
+            } else {
+                        System.out.println("[ERROR] Revise el orden del excel porque" +
+                                " no se pudo obtener el dato de la columna" + columnName);
                         System.exit(1);
-                    }
-
-                    if (foreignKeyDataFromConfig != null && !foreignKeyDataFromConfig.isEmpty()) {
-                        eraseFromConfigList(foreignKeyDataFromConfig, innerConnection[1]);
-                    }
-                }
             }
 
-            // AÑADIMOS EL DATO DEL EXCEL
-            FOREIGN_KEY_INSERT_NEW_REGISTRY.put(foreignKeyInfo[2], new Object[]{
-                    data[0],
-                    data[1]
-            });
+            if (foreignKeyDataFromConfig != null && !foreignKeyDataFromConfig.isEmpty()) {
+                eraseFromConfigList(foreignKeyDataFromConfig, innerConnection[2]);
+            }
+        }
 
+        // AÑADIMOS EL DATO DEL EXCEL
+        FOREIGN_KEY_INSERT_NEW_REGISTRY.put(foreignKeyInfo[2],
+                new Object[]{
+                        data[0],
+                        data[1]
+                });
+
+        try {
             if (foreignKeyDataFromConfig != null) {
                 eraseFromConfigList(foreignKeyDataFromConfig, foreignKeyInfo[2]);
             }
         } catch (Exception e) {
-            System.out.println("[ERROR]: No se eliminó ningún valor de la lista para la creación de un nuevo registro en tabla foránea");
+            System.out.println("[ERROR]: No se eliminó ningún valor de la lista para" +
+                    " la creación de un nuevo registro en tabla foránea");
         }
+
 
         // AÑADIMOS LO QUE QUEDA DE LA LISTA DE CONFIGURACIÓN
         if (foreignKeyDataFromConfig != null && !foreignKeyDataFromConfig.isEmpty()) {
@@ -293,6 +385,30 @@ public class MainController {
         }
 
         createNewRegistry(foreignKeyInfo[0], FOREIGN_KEY_INSERT_NEW_REGISTRY);
+    }
+
+    private String getTableName(List<TableNameExcelData> list, String columnName) {
+        TableNameExcelData table = list.stream()
+                .filter(tableNameExcelData ->
+                        Objects.equals(tableNameExcelData.getColumnName(), columnName))
+                .findFirst()
+                .orElse(null);
+
+        if (table == null) {
+            System.out.println("[ERROR] No se ha encontrado la tabla para la columna " + columnName);
+            System.exit(1);
+        }
+
+        return table.getTableName();
+    }
+
+    private void eraseFromTableList(List<TableNameExcelData> tableList, String tableName, String columnName) {
+        tableList.remove(tableList.stream()
+                .filter(table -> table.getTableName().equals(tableName)
+                        && table.getColumnName().equals(columnName))
+                .findFirst()
+                .orElse(null)
+        );
     }
 
     private void createNewRegistry(String tableName, Map<String, Object[]> dataForNewRegistry) {
@@ -314,10 +430,10 @@ public class MainController {
     private int[] getIncrementData(IncreaseData increaseData) {
         int[] incrementData = new int[]{0, -1};
         if ((increaseData.getType()).equals("str")) {
-            // DEJARLO PARA LUEGO
+            // ********************** EMPTY **************************
         } else {
-            if (DB_CONNECTION.setIncreaseThroughInt((Integer) increaseData.getData()))                  // UPDATE (boolean)
-                incrementData = DB_CONNECTION.getIncreaseCodeInDB((Integer) increaseData.getData());    // SELECT
+            if (DB_CONNECTION.setIncreaseThroughInt((Integer) increaseData.getData()))                                      // UPDATE (boolean)
+                incrementData = DB_CONNECTION.getIncreaseCodeInDB((Integer) increaseData.getData());                        // SELECT
         }
         return incrementData;
     }
@@ -340,6 +456,4 @@ public class MainController {
             }
         }
     }
-
-
 }
