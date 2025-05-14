@@ -50,6 +50,12 @@
         "column": "CODIGO",
         "type": "int",
         "data": 7
+      },
+      {
+        "name": "CTARIFA",
+        "column": "CODIGO",
+        "type": "int",
+        "data": 8
       }
     ]
   },
@@ -1290,6 +1296,16 @@
             "name": "CERRADO",
             "type": "int",
             "data": 0
+          }
+        ]
+      },
+      {
+        "name": "LINTARIF",
+        "data": [
+          {
+            "name": "LINEA",
+            "type": "int",
+            "data": 1
           }
         ]
       }

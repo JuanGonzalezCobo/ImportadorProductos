@@ -7,4 +7,5 @@ import lombok.Data;
 @AllArgsConstructor
 public class TableNameExcelData {
     private String columnName, tableName;
+    private int columnNumber;
 }

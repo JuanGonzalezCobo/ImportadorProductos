@@ -108,7 +108,7 @@ public class ExcelFileManager {
                                     cell.getStringCellValue().trim().toUpperCase()
                             });
 
-                            case NUMERIC -> rowData.add(formatCellNumberValue(cell));
+                            case NUMERIC -> rowData.add(formatCellNumberValue(cell, null));
 
                             case BOOLEAN -> rowData.add(new Object[]{
                                     Types.INTEGER,
@@ -119,7 +119,7 @@ public class ExcelFileManager {
                                 FormulaEvaluator evaluator = wb.getCreationHelper().createFormulaEvaluator();
                                 CellValue cellValue = evaluator.evaluate(cell);
                                 if (cellValue.getCellType() == CellType.NUMERIC) {
-                                    rowData.add(formatCellNumberValue(cell));
+                                    rowData.add(formatCellNumberValue(cell, evaluator));
                                 } else {
                                     rowData.add(new Object[]{
                                             Types.VARCHAR,
@@ -175,7 +175,7 @@ public class ExcelFileManager {
         return null;
     }
 
-    private Object[] formatCellNumberValue(Cell cell) {
+    private Object[] formatCellNumberValue(Cell cell, FormulaEvaluator formulaEvaluator) {
         Object[] newValue;
         if (DateUtil.isCellDateFormatted(cell)) {
             newValue = new Object[]{
@@ -184,8 +184,17 @@ public class ExcelFileManager {
             };
         } else {
             DataFormatter dataFormatter = new DataFormatter();
-            String stringCellValue = dataFormatter.formatCellValue(cell);
-            Double value = cell.getNumericCellValue();
+            String stringCellValue;
+            Double value;
+
+            if (formulaEvaluator != null) {
+                stringCellValue = dataFormatter.formatCellValue(cell, formulaEvaluator);
+                CellValue cellValue = formulaEvaluator.evaluate(cell);
+                value = cellValue.getNumberValue();
+            } else {
+                stringCellValue = dataFormatter.formatCellValue(cell);
+                value = cell.getNumericCellValue();
+            }
 
             try {
                 if (Objects.equals(stringCellValue, String.valueOf(value))) {
