@@ -33,7 +33,7 @@ public class Repository {
     //* EXCEL FILE  *
     //***************
 
-    private List<TableNameExcelData> COLUMN_AND_TABLE_FROM_EXCEL;
+    private List<TableNameExcelData> COLUMN_AND_TABLE_FROM_EXCEL;                                                           // Combinación del nombre de la columna con la tabla
     private List<String> ALL_TABLES_EXCEL;                                                                                  // Vendrá de un set para que solo aparezcan las que existen
 
     private Map<TableNameExcelData, String[]> FOREIGN_KEY_HEADERS_FROM_EXCEL;                                               // Estos son aquellos que tienen un foreign key
