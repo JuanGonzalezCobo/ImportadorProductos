@@ -179,7 +179,6 @@ public class DataBaseConnection {
                 innerConnectionData[4]
         });
 
-        // Son 11 los strings.
         try (Statement statement = connection.createStatement()) {
             int[] returnValue = new int[]{0, -1};
             ResultSet rs = statement.executeQuery(SQL.toString());
@@ -260,20 +259,53 @@ public class DataBaseConnection {
 
     }
 
-    public boolean checkIfAlreadyExists(String tableName, Map<String, Object[]> values) {
+    public void updateRegistry(String tableName, Map<String, Object[]> values, Map<String, Object[]> whereValues) {
+        if (values.isEmpty()) return;
+
+        final StringBuilder SQL = new StringBuilder("UPDATE " + tableName + " SET ");
+
+        for (String key : values.keySet()) {
+            SQL.append(key).append(" = ");
+            addInStringBuilder(SQL, values.get(key));
+            if (!Objects.equals(key, values.keySet().stream().toList().getLast())) {
+                SQL.append(", ");
+            }
+        }
+
+        SQL.append(" WHERE ");
+
+        for (String key : whereValues.keySet()) {
+            SQL.append(key).append(" = ");
+            addInStringBuilder(SQL, whereValues.get(key));
+            if (!Objects.equals(key, whereValues.keySet().stream().toList().getLast())) {
+                SQL.append(" AND ");
+            }
+        }
+
+        try (Statement statement = connection.createStatement()){
+            statement.executeUpdate(SQL.toString());
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+
+
+    }
+
+
+    public boolean registryExistsInDB(String tableName, Map<String, Object[]> values) {
         if (values.isEmpty()) {
             System.out.println("No existen valores en el mapa para comprobar si ya existe en la tabla " + tableName);
             System.exit(1);
-            return true;
+            return false;
         }
-        boolean isFirstInteration = true;
+        boolean isFirstIteration = true;
         final StringBuilder SQL = new StringBuilder("SELECT COUNT(*) FROM " + tableName + " WHERE ");
 
         for (String keys : values.keySet()) {
             Object[] value = values.get(keys);
             if (keys.contains("FECHA")) continue;
-            if (isFirstInteration) {
-                isFirstInteration = false;
+            if (isFirstIteration) {
+                isFirstIteration = false;
             } else {
                 SQL.append(" AND ");
             }
@@ -284,14 +316,16 @@ public class DataBaseConnection {
         try (Statement statement = connection.createStatement();
              ResultSet resultSet = statement.executeQuery(SQL.toString())) {
             if (resultSet.next()) {
-                return resultSet.getInt("COUNT") == 0;
+                return resultSet.getInt("COUNT") == 1;
             } else {
-                return true;
+                return false;
             }
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
     }
+
+
 
     private void addInStringBuilder(StringBuilder sql, Object[] value) {
         switch (Integer.parseInt(value[0].toString())) {

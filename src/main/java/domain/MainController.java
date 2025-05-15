@@ -79,7 +79,8 @@ public class MainController {
         Map<TableNameExcelData, String[]> excelHeaderForeignKey = REPOSITORY.getFOREIGN_KEY_HEADERS_FROM_EXCEL();           // MAPA DE LAS FK, CON _KEYS_ COMO LAS COLUMNAS DEL EXCEL
         Map<TableNameExcelData, Object[]> excelHeaderInnerConnections = REPOSITORY.getINNER_DATA_HEADERS_FROM_EXCEL();      // MAPA DE LOS INNER_CONNECTIONS, CON _KEYS_ COMO LAS COLUMNA
 
-        Map<String, Data[]> config = REPOSITORY.getDEFAULT_TABLES_DATA_FROM_CONFIG();                                       // MAPA DE LOS DATOS DE LAS TABLAS EN EL ARCHIVO DE config.json
+        Map<String, Data[]> tableConfig = REPOSITORY.getDEFAULT_TABLES_DATA_FROM_CONFIG();                                  // MAPA DE LOS DATOS DE LAS TABLAS EN EL ARCHIVO DE config.json
+        Map<String, String[]> updateConfig = REPOSITORY.getDEFAULT_UPDATE_FROM_CONFIG();                                    // MAPA DE LOS DATOS DE LA COLUMNA IMPORTANTE POR TABLA EN EL ARCHIVO DE config.json PARA ACTUALIZAR
         Map<String, List<Data>> dataPerTableConfig = new LinkedHashMap<>();                                                 // MAPA DE LOS DATOS QUE HAY EN ARCHIVO config.json, CON _KEYS_ CO
 
         String tableName = null;                                                                                            // STRING, NOMBRE DE LA TABLA POR COLUMNA
@@ -97,8 +98,8 @@ public class MainController {
 
             for (String table : excelAllTablesHeaders) {
                 DATA_TO_INSERT_INTO_DB.put(table, new LinkedHashMap<>());
-                if (config.get(table) != null) {
-                    dataPerTableConfig.put(table, Arrays.stream(config.get(table)).toList());
+                if (tableConfig.get(table) != null) {
+                    dataPerTableConfig.put(table, Arrays.stream(tableConfig.get(table)).toList());
                 }
             }
 
@@ -125,24 +126,7 @@ public class MainController {
                         && (!lastestTableName.equals(tableName) || tableNumber != lastestTableNumber)
                         && !DATA_TO_INSERT_INTO_DB.get(lastestTableName).isEmpty()) {
 
-                        if (config.get(lastestTableName) != null) {
-                            Map<String, Object[]> dataToInsertAux = new HashMap<>(DATA_TO_INSERT_INTO_DB
-                                    .get(lastestTableName));
-                            addLastInfoFromConfig(dataToInsertAux, dataPerTableConfig.get(lastestTableName));
-                            DATA_TO_INSERT_INTO_DB.put(lastestTableName, dataToInsertAux);
-                            dataPerTableConfig.remove(lastestTableName);
-
-                            // RENOVATE THE DATA FROM CONFIG IN CASE THERE ARE MORE THAN ONE KIND OF TABLE IN THE EXCEL
-                            dataPerTableConfig.put(
-                                    lastestTableName,
-                                    Arrays.stream(config.get(lastestTableName)).toList()
-                            );
-
-                        }
-                        if (DB_CONNECTION.checkIfAlreadyExists(
-                                lastestTableName,
-                                DATA_TO_INSERT_INTO_DB.get(lastestTableName))
-                        ) createNewRegistry(lastestTableName, DATA_TO_INSERT_INTO_DB.get(lastestTableName));
+                    updateOrCreateRegistryInDB(lastestTableName, updateConfig, tableConfig, dataPerTableConfig);
 
                 }
 
@@ -164,7 +148,7 @@ public class MainController {
 
 
                     infoToInsert = createDataToInsert(                                                                          // [ELSE] THERE'S DATA IN CONFIG FILE (ADDS IT)
-                            config,
+                            tableConfig,
                             excelHeaderForeignKey,
                             excelHeaderInnerConnections,
                             REPOSITORY.getCOLUMN_AND_TABLE_FROM_EXCEL(),
@@ -174,7 +158,7 @@ public class MainController {
 
                 } else {                                                                                                    // [ELSE] NOT EMPTY CELL IN EXCEL
                     infoToInsert = createDataToInsert(
-                            config,
+                            tableConfig,
                             excelHeaderForeignKey,
                             excelHeaderInnerConnections,
                             REPOSITORY.getCOLUMN_AND_TABLE_FROM_EXCEL(),
@@ -214,15 +198,7 @@ public class MainController {
             //*********************************************************
 
             if (!DATA_TO_INSERT_INTO_DB.get(tableName).isEmpty()) {
-                if (dataPerTableConfig.get(tableName) != null && !dataPerTableConfig.get(tableName).isEmpty()) {
-                    Map<String, Object[]> dataToInsertAux = DATA_TO_INSERT_INTO_DB.get(tableName);
-                    addLastInfoFromConfig(dataToInsertAux, dataPerTableConfig.get(tableName));
-                    DATA_TO_INSERT_INTO_DB.put(tableName, dataToInsertAux);
-                }
-
-                if (DB_CONNECTION.checkIfAlreadyExists(tableName, DATA_TO_INSERT_INTO_DB.get(tableName)))
-                    // IF EVERYTHING'S OK IT WILL INSERT IN INTO THE DB
-                    createNewRegistry(tableName, DATA_TO_INSERT_INTO_DB.get(tableName));
+                updateOrCreateRegistryInDB(tableName, updateConfig, tableConfig, dataPerTableConfig);
             }
         }
     }
@@ -355,6 +331,7 @@ public class MainController {
 
             TableNameExcelData columnInfoFromInnerConnection = (TableNameExcelData) innerConnection[0];
 
+
             if ((infoToInsert = DATA_TO_INSERT_INTO_DB                                                                          // [IF] INFO FROM THE OTHER COLUMNS ADDS IT
                     .get(columnInfoFromInnerConnection.getTableName())
                     .get(columnInfoFromInnerConnection.getColumnName())) != null) {
@@ -375,12 +352,13 @@ public class MainController {
             }
         }
 
-
-        FOREIGN_KEY_INSERT_NEW_REGISTRY.put(foreignKeyInfo[2],                                                              // ADDS DATA
+        FOREIGN_KEY_INSERT_NEW_REGISTRY.put(
+                foreignKeyInfo[2],                                                                                          // ADDS DATA
                 new Object[]{
                         data[0],
                         data[1]
-                });
+                }
+        );
 
         try {
             if (foreignKeyDataFromConfig != null) {
@@ -392,11 +370,69 @@ public class MainController {
         }
 
         if (foreignKeyDataFromConfig != null && !foreignKeyDataFromConfig.isEmpty()) {
-            addLastInfoFromConfig(FOREIGN_KEY_INSERT_NEW_REGISTRY, foreignKeyDataFromConfig);                               // ADDS THE DATA FROM CONFIG TABLE THAT WASN'T DELETED
+            addLastInfoFromConfigList(FOREIGN_KEY_INSERT_NEW_REGISTRY, foreignKeyDataFromConfig);                               // ADDS THE DATA FROM CONFIG TABLE THAT WASN'T DELETED
         }
 
         createNewRegistry(foreignKeyInfo[0], FOREIGN_KEY_INSERT_NEW_REGISTRY);                                              // CREATES NEW REGISTRY
     }
+
+    private void updateOrCreateRegistryInDB(String tableName,
+                                            Map<String, String[]> updateConfig,
+                                            Map<String, Data[]> tableConfig,
+                                            Map<String, List<Data>> dataPerTableConfig) {
+        try {
+
+            if (dataPerTableConfig.get(tableName) != null && !dataPerTableConfig.get(tableName).isEmpty()) {
+                Map<String, Object[]> dataToInsertAux = DATA_TO_INSERT_INTO_DB.get(tableName);
+                addLastInfoFromConfigList(dataToInsertAux, dataPerTableConfig.get(tableName));
+                DATA_TO_INSERT_INTO_DB.put(tableName, dataToInsertAux);
+                dataPerTableConfig.remove(tableName);
+                // RENOVATE THE DATA FROM CONFIG IN CASE THERE ARE MORE THAN ONE KIND OF TABLE IN THE EXCEL
+                dataPerTableConfig.put(
+                        tableName,
+                        Arrays.stream(tableConfig.get(tableName)).toList()
+                );
+            }
+
+            Map<String, Object[]> mapOfUpdatableColumns = new LinkedHashMap<>();
+            String[] updateColumns;
+            if ((updateColumns = updateConfig.get(tableName)) != null) {
+                for (String updateColumn : updateColumns) {
+                    Object[] dataFromExcel;
+                    if ((dataFromExcel = DATA_TO_INSERT_INTO_DB.get(tableName).get(updateColumn)) != null) {
+                        mapOfUpdatableColumns.put(updateColumn, dataFromExcel);
+                    } else {
+                        throw new Exception("[ERROR] No se ha encontrado los datos para la columna "
+                                + updateColumn + " en la tabla " + tableName);
+                    }
+                }
+
+            } else {
+                throw new Exception("[ERROR] No se han añadido en el archivo de configuración los datos necesarios " +
+                        "para una posible actualización de la tabla " + tableName + " en la base de datos.");
+            }
+
+            if (DB_CONNECTION.registryExistsInDB(tableName, mapOfUpdatableColumns))
+                updateRegistry(tableName, DATA_TO_INSERT_INTO_DB.get(tableName), mapOfUpdatableColumns);
+            else
+                createNewRegistry(tableName, DATA_TO_INSERT_INTO_DB.get(tableName));
+
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+            System.exit(1);
+        }
+    }
+
+    private void updateRegistry(String tableName,
+                                Map<String, Object[]> dataForUpdateRegistry,
+                                Map<String, Object[]> whereValuesForUpdateRegistry) {
+        for (String column : whereValuesForUpdateRegistry.keySet()) {
+            dataForUpdateRegistry.remove(column);
+        }
+
+        DB_CONNECTION.updateRegistry(tableName, dataForUpdateRegistry, whereValuesForUpdateRegistry);
+    }
+
 
     private void createNewRegistry(String tableName, Map<String, Object[]> dataForNewRegistry) {
         Map<String, IncreaseData> increaseDataMap = REPOSITORY.getDEFAULT_INCREASE_FROM_CONFIG();
@@ -413,6 +449,7 @@ public class MainController {
 
         DB_CONNECTION.insertNewRegistry(tableName, dataForNewRegistry);
     }
+
 
     private int[] getIncrementData(IncreaseData increaseData) {
         int[] incrementData = new int[]{0, -1};
@@ -433,7 +470,7 @@ public class MainController {
         );
     }
 
-    private void addLastInfoFromConfig(Map<String, Object[]> insertionMap, List<Data> list) {
+    private void addLastInfoFromConfigList(Map<String, Object[]> insertionMap, List<Data> list) {
         for (Data data : list) {
             if (data.getData() != null) {
                 insertionMap.put(data.getName(), new Object[]{

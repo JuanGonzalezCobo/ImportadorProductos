@@ -29,6 +29,7 @@ public class ConfigFileManager {
                 case "DbConfig" -> configData.put(sectionName, gson.fromJson(dataElement, DbData[].class));
                 case "Incrementos" -> configData.put(sectionName, gson.fromJson(dataElement, IncreaseData[].class));
                 case "Tablas" -> configData.put(sectionName, gson.fromJson(dataElement, TableData[].class));
+                case "Actualización" -> configData.put(sectionName, gson.fromJson(dataElement, UpdateData[].class));
             }
         }
         return configData;

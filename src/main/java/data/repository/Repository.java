@@ -26,6 +26,7 @@ public class Repository {
     private final Map<String, Object> SECTIONS_CONFIG;
 
     private Map<String, IncreaseData> DEFAULT_INCREASE_FROM_CONFIG;
+    private Map<String, String[]> DEFAULT_UPDATE_FROM_CONFIG;
     private Map<String, Data[]> DEFAULT_TABLES_DATA_FROM_CONFIG;
 
     //***************
@@ -48,6 +49,7 @@ public class Repository {
         this.SECTIONS_CONFIG = sectionsConfig;
         this.DEFAULT_INCREASE_FROM_CONFIG = setIncreaseConfig();
         this.DEFAULT_TABLES_DATA_FROM_CONFIG = setTablesConfig();
+        this.DEFAULT_UPDATE_FROM_CONFIG = setUpdateConfig();
 
     }
 
@@ -58,6 +60,15 @@ public class Repository {
     //***************
     //* SETTERS     *
     //***************
+
+
+    private Map<String, String[]> setUpdateConfig() {
+        Map<String, String[]> updateConfig = new LinkedHashMap<>();
+        for (UpdateData eachUpdate : (UpdateData[]) SECTIONS_CONFIG.get("Actualización")) {
+            updateConfig.put(eachUpdate.getName(), eachUpdate.getData());
+        }
+        return updateConfig;
+    }
 
     private Map<String, IncreaseData> setIncreaseConfig() {
         Map<String, IncreaseData> increaseConfig = new LinkedHashMap<>();

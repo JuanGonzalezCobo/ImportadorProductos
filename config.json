@@ -60,6 +60,58 @@
     ]
   },
   {
+    "name": "Actualización",
+    "data": [
+      {
+        "name": "ARTICULO",
+        "data": [
+          "IDENTIFICACION"
+        ]
+      },
+      {
+        "name": "CLIENTES",
+        "data": [
+          "NOMBRE"
+        ]
+      },
+      {
+        "name": "ARTPROV",
+        "data": [
+          "ARTICULO",
+          "PROVEEDOR"
+        ]
+      },
+      {
+        "name": "CUENTAS",
+        "data": [
+          "NUMERO",
+          "CODIGO_CLIENTE",
+          "TIPO"
+        ]
+      },
+      {
+        "name": "LINTARIF",
+        "data": [
+          "CODIGO_ARTICULO",
+          "CODIGO_TARIFA"
+        ]
+      },
+      {
+        "name": "FAMILIAS",
+        "data": [
+          "NOMBRE"
+        ]
+      },
+      {
+        "name": "SUBFAMILIAS",
+        "data": [
+          "NOMBRE",
+          "FAMILIA"
+        ]
+      }
+    ]
+  },
+  {
     "name": "Tablas",
     "data": [
       {

@@ -91,7 +91,6 @@ public class ExcelFileManager {
                 }
             }
 
-
             for (Row row : sheet) {
 
                 List<Object[]> rowData = new ArrayList<>();
@@ -121,10 +120,15 @@ public class ExcelFileManager {
                                 if (cellValue.getCellType() == CellType.NUMERIC) {
                                     rowData.add(formatCellNumberValue(cell, evaluator));
                                 } else {
-                                    rowData.add(new Object[]{
-                                            Types.VARCHAR,
-                                            cellValue.getStringValue()
-                                    });
+                                    String stringCellValue = cellValue.getStringValue();
+                                    if (!stringCellValue.isEmpty())
+                                        rowData.add(new Object[]{
+                                                Types.VARCHAR,
+                                                stringCellValue
+                                        });
+                                    else {
+                                        rowData.add(null);
+                                    }
                                 }
                             }
                             default -> rowData.add(null);
@@ -209,10 +213,12 @@ public class ExcelFileManager {
                     };
                 }
             } catch (Exception e) {
-                newValue = new Object[]{
-                        Types.VARCHAR,
-                        stringCellValue
-                };
+                if (!stringCellValue.isBlank())
+                    newValue = new Object[]{
+                            Types.VARCHAR,
+                            stringCellValue
+                    };
+                else newValue = null;
             }
         }
         return newValue;
