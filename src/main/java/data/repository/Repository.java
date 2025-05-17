@@ -35,8 +35,8 @@ public class Repository {
 
     /***** ESTRUCTURE FILE *****/
 
-    final private Map<TableAndColumnNameExcelData, String[]> FOREIGN_KEY_HEADERS_FROM_EXCEL;                                // Estos son aquellos que tienen un foreign key
-    final private Map<TableAndColumnNameExcelData, Object[]> INNER_DATA_HEADERS_FROM_EXCEL;                                 // Estos son aquellos que necesitan de otra columna para funcionar
+    private Map<TableAndColumnNameExcelData, String[]> FOREIGN_KEY_HEADERS_FROM_EXCEL;                                // Estos son aquellos que tienen un foreign key
+    private Map<TableAndColumnNameExcelData, Object[]> INNER_DATA_HEADERS_FROM_EXCEL;                                 // Estos son aquellos que necesitan de otra columna para funcionar
 
     /***** DATA FILE *****/
 
@@ -58,8 +58,7 @@ public class Repository {
         this.DEFAULT_UPDATE_FROM_CONFIG = setUpdateConfig();
 
         // GETTING DATA FROM ESTRUCTURE-EXCEL
-        this.FOREIGN_KEY_HEADERS_FROM_EXCEL = setExcelsHeaderForeignKeys(dataFromExcel, EXCEL_FILE_MANAGER);
-        this.INNER_DATA_HEADERS_FROM_EXCEL = ;
+
     }
 
     //*************************************************************************
