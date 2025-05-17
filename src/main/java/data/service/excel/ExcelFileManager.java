@@ -33,11 +33,12 @@ public class ExcelFileManager {
     File estructuralExcelFile;
     File dataExcelFile;
 
-    public final FileInputStream FIS_ESTRUCTURAL_EXCEL_FILE;
+    //public final FileInputStream FIS_ESTRUCTURAL_EXCEL_FILE;
 
 
     private CellStyle HEADER_STYLE;
 
+    /*
     public ExcelFileManager() {
         try {
             FIS_ESTRUCTURAL_EXCEL_FILE = new FileInputStream("estructura/estructura.xlsx");
@@ -45,6 +46,8 @@ public class ExcelFileManager {
             throw new RuntimeException(e);
         }
     }
+    */
+
 
     private void setColumnHeaderStyle(XSSFWorkbook wb) {
         HEADER_STYLE = wb.createCellStyle();
@@ -284,7 +287,8 @@ public class ExcelFileManager {
                 int rowNum = row.getRowNum();
 
                 if (isEstructuralExcel)
-                    estructureHeadersRow = rowNum;
+                    //estructureHeadersRow = rowNum;
+                    headersRow = rowNum;
                 else
                     headersRow = rowNum;
 
@@ -299,7 +303,8 @@ public class ExcelFileManager {
                 List<Integer> columnsWithHeaderList = columnsWithHeader.stream().toList();
 
                 if (isEstructuralExcel)
-                    estructureExcelColumnsWithHeader = columnsWithHeaderList;
+                    //estructureExcelColumnsWithHeader = columnsWithHeaderList;
+                    excelColumnsWithHeader = columnsWithHeaderList;
                 else
                     excelColumnsWithHeader = columnsWithHeaderList;
                 break;
