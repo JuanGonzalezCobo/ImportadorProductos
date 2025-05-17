@@ -30,15 +30,20 @@ public class Repository {
     private Map<String, Data[]> DEFAULT_TABLES_DATA_FROM_CONFIG;
 
     //***************
-    //* EXCEL FILE  *
+    //* EXCEL FILES *
     //***************
 
-    private List<TableNameExcelData> COLUMN_AND_TABLE_FROM_EXCEL;                                                           // Combinación del nombre de la columna con la tabla
+    /***** ESTRUCTURE FILE *****/
+
+    final private Map<TableAndColumnNameExcelData, String[]> FOREIGN_KEY_HEADERS_FROM_EXCEL;                                // Estos son aquellos que tienen un foreign key
+    final private Map<TableAndColumnNameExcelData, Object[]> INNER_DATA_HEADERS_FROM_EXCEL;                                 // Estos son aquellos que necesitan de otra columna para funcionar
+
+    /***** DATA FILE *****/
+
+    private List<TableAndColumnNameExcelData> COLUMN_AND_TABLE_FROM_EXCEL;                                                  // Combinación del nombre de la columna con la tabla
     private List<String> ALL_TABLES_EXCEL;                                                                                  // Vendrá de un set para que solo aparezcan las que existen
 
-    private Map<TableNameExcelData, String[]> FOREIGN_KEY_HEADERS_FROM_EXCEL;                                               // Estos son aquellos que tienen un foreign key
-    private Map<TableNameExcelData, Object[]> INNER_DATA_HEADERS_FROM_EXCEL;                                                // Estos son aquellos que necesitan de otra columna para funcionar
-    private Queue<Map<TableNameExcelData, Object[]>> DATA_FROM_EXCEL;                                                       // Los datos del excel
+    private Queue<Map<TableAndColumnNameExcelData, Object[]>> DATA_FROM_EXCEL;                                              // Los datos del excel
 
     //*************************************************************************
     //* CONSTRUCTOR                                                           *
@@ -46,11 +51,15 @@ public class Repository {
 
 
     public Repository(Map<String, Object> sectionsConfig) {
+        // GETTING DATA FROM CONFIG
         this.SECTIONS_CONFIG = sectionsConfig;
         this.DEFAULT_INCREASE_FROM_CONFIG = setIncreaseConfig();
         this.DEFAULT_TABLES_DATA_FROM_CONFIG = setTablesConfig();
         this.DEFAULT_UPDATE_FROM_CONFIG = setUpdateConfig();
 
+        // GETTING DATA FROM ESTRUCTURE-EXCEL
+        this.FOREIGN_KEY_HEADERS_FROM_EXCEL = setExcelsHeaderForeignKeys(dataFromExcel, EXCEL_FILE_MANAGER);
+        this.INNER_DATA_HEADERS_FROM_EXCEL = ;
     }
 
     //*************************************************************************
@@ -111,7 +120,6 @@ public class Repository {
         return (DbData[]) SECTIONS_CONFIG.get("DbConfig");
     }
 
-
     //*************************************************************************
     //* FILL EXCEL DATA                                                       *
     //*************************************************************************
@@ -133,24 +141,24 @@ public class Repository {
         return tables.stream().toList();
     }
 
-    private List<TableNameExcelData> setExcelsHeaderTables(List<List<Object[]>> data, ExcelFileManager EXCEL_FILE_MANAGER) {
-        List<TableNameExcelData> tableNameExcelData = new ArrayList<>();
+    private List<TableAndColumnNameExcelData> setExcelsHeaderTables(List<List<Object[]>> data, ExcelFileManager EXCEL_FILE_MANAGER) {
+        List<TableAndColumnNameExcelData> tableAndColumnNameExcelData = new ArrayList<>();
         for (int i = 0; i < data.get(EXCEL_FILE_MANAGER.headersRow).size(); i++) {
             String[] tableDataFromExcel = data.get(EXCEL_FILE_MANAGER.headersRow)
                     .get(i)[1].toString().split("\\.");
 
             int numberOfElement = (tableDataFromExcel.length == 2) ? 0 : Integer.parseInt(tableDataFromExcel[2]);
-            tableNameExcelData.add(new TableNameExcelData(
+            tableAndColumnNameExcelData.add(new TableAndColumnNameExcelData(
                     tableDataFromExcel[1],
                     tableDataFromExcel[0],
                     numberOfElement
             ));
         }
-        return tableNameExcelData;
+        return tableAndColumnNameExcelData;
     }
 
-    private Map<TableNameExcelData, String[]> setExcelsHeaderForeignKeys(List<List<Object[]>> data, ExcelFileManager EXCEL_FILE_MANAGER) {
-        Map<TableNameExcelData, String[]> header = new HashMap<>();
+    private Map<TableAndColumnNameExcelData, String[]> setExcelsHeaderForeignKeys(List<List<Object[]>> data, ExcelFileManager EXCEL_FILE_MANAGER) {
+        Map<TableAndColumnNameExcelData, String[]> header = new HashMap<>();
 
         for (int i = 0; i < data.getFirst().size(); i++) {
             if (data.get(EXCEL_FILE_MANAGER.headersRow - 1).get(i) != null) {
@@ -165,8 +173,8 @@ public class Repository {
         return header;
     }
 
-    private Map<TableNameExcelData, Object[]> setExcelHeaderInnerConnections(List<List<Object[]>> data, ExcelFileManager EXCEL_FILE_MANAGER) {
-        Map<TableNameExcelData, Object[]> header = new HashMap<>();
+    private Map<TableAndColumnNameExcelData, Object[]> setExcelHeaderInnerConnections(List<List<Object[]>> data, ExcelFileManager EXCEL_FILE_MANAGER) {
+        Map<TableAndColumnNameExcelData, Object[]> header = new HashMap<>();
 
         if (EXCEL_FILE_MANAGER.headersRow != 4) {
             for (int i = 0; i < data.getFirst().size(); i++) {
@@ -179,7 +187,7 @@ public class Repository {
                 int numberOfElement = (tableDataFromExcel.length == 2) ? 0 : Integer.parseInt(tableDataFromExcel[2]);
 
                 header.put(getCOLUMN_AND_TABLE_FROM_EXCEL().get(i), new Object[]{
-                        new TableNameExcelData(
+                        new TableAndColumnNameExcelData(
                                 tableDataFromExcel[1],
                                 tableDataFromExcel[0],
                                 numberOfElement
@@ -191,11 +199,11 @@ public class Repository {
         return header;
     }
 
-    private Queue<Map<TableNameExcelData, Object[]>> setExcelsData(List<List<Object[]>> data, ExcelFileManager EXCEL_FILE_MANAGER) {
-        Queue<Map<TableNameExcelData, Object[]>> registryData = new LinkedList<>();
+    private Queue<Map<TableAndColumnNameExcelData, Object[]>> setExcelsData(List<List<Object[]>> data, ExcelFileManager EXCEL_FILE_MANAGER) {
+        Queue<Map<TableAndColumnNameExcelData, Object[]>> registryData = new LinkedList<>();
         if (data.size() > EXCEL_FILE_MANAGER.headersRow + 1) {
             for (int i = EXCEL_FILE_MANAGER.headersRow + 1; i < data.size(); i++) {
-                Map<TableNameExcelData, Object[]> dataRow = new HashMap<>();
+                Map<TableAndColumnNameExcelData, Object[]> dataRow = new HashMap<>();
                 for (int j = 0; j < data.get(i).size(); j++) {
                     dataRow.put(getCOLUMN_AND_TABLE_FROM_EXCEL().get(j), data.get(i).get(j));
                 }

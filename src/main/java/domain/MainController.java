@@ -5,7 +5,7 @@ import app.AppConfig;
 import app.AppState;
 import data.model.Data;
 import data.model.IncreaseData;
-import data.model.TableNameExcelData;
+import data.model.TableAndColumnNameExcelData;
 import data.repository.Repository;
 import data.service.config.ConfigFileManager;
 import data.service.db.DataBaseConnection;
@@ -28,6 +28,8 @@ public class MainController {
 
     public MainController(AppState state, AppConfig config) {
         this.CONFIG_FILE_MANAGER = new ConfigFileManager();
+        this.EXCEL_FILE_MANAGER = new ExcelFileManager();
+
         App.clearConsole();
         System.out.println("""
                 ----------------------------------------------------------------
@@ -42,8 +44,6 @@ public class MainController {
         CONFIG.setDatabaseConfig(REPOSITORY.getDataBaseConfig());
 
         this.DB_CONNECTION = new DataBaseConnection(getDataBaseInfo());
-
-        this.EXCEL_FILE_MANAGER = new ExcelFileManager();
 
         mainThread();
     }
@@ -73,11 +73,11 @@ public class MainController {
     //*************************************************************************
 
     private void mainInsertInDB() {
-        Map<TableNameExcelData, Object[]> dataRow;
+        Map<TableAndColumnNameExcelData, Object[]> dataRow;
 
         List<String> excelAllTablesHeaders;                                                                                 // LISTA QUE VIENE DEL SET DONDE APARECEN TODAS LAS TABLAS
-        Map<TableNameExcelData, String[]> excelHeaderForeignKey = REPOSITORY.getFOREIGN_KEY_HEADERS_FROM_EXCEL();           // MAPA DE LAS FK, CON _KEYS_ COMO LAS COLUMNAS DEL EXCEL
-        Map<TableNameExcelData, Object[]> excelHeaderInnerConnections = REPOSITORY.getINNER_DATA_HEADERS_FROM_EXCEL();      // MAPA DE LOS INNER_CONNECTIONS, CON _KEYS_ COMO LAS COLUMNA
+        Map<TableAndColumnNameExcelData, String[]> excelHeaderForeignKey = REPOSITORY.getFOREIGN_KEY_HEADERS_FROM_EXCEL();           // MAPA DE LAS FK, CON _KEYS_ COMO LAS COLUMNAS DEL EXCEL
+        Map<TableAndColumnNameExcelData, Object[]> excelHeaderInnerConnections = REPOSITORY.getINNER_DATA_HEADERS_FROM_EXCEL();      // MAPA DE LOS INNER_CONNECTIONS, CON _KEYS_ COMO LAS COLUMNA
 
         Map<String, Data[]> tableConfig = REPOSITORY.getDEFAULT_TABLES_DATA_FROM_CONFIG();                                  // MAPA DE LOS DATOS DE LAS TABLAS EN EL ARCHIVO DE config.json
         Map<String, String[]> updateConfig = REPOSITORY.getDEFAULT_UPDATE_FROM_CONFIG();                                    // MAPA DE LOS DATOS DE LA COLUMNA IMPORTANTE POR TABLA EN EL ARCHIVO DE config.json PARA ACTUALIZAR
@@ -107,7 +107,7 @@ public class MainController {
             //*    LOOP FOR EACH COLUMN IN THE EXCEL FILE     *
             //*************************************************
 
-            for (TableNameExcelData column : REPOSITORY.getCOLUMN_AND_TABLE_FROM_EXCEL()) {
+            for (TableAndColumnNameExcelData column : REPOSITORY.getCOLUMN_AND_TABLE_FROM_EXCEL()) {
 
                 //*************************************************
                 //*    GETTING THE NAME OF THE COLUMN'S TABLE     *
@@ -206,10 +206,10 @@ public class MainController {
 
     private Object[] createDataToInsert(
             Map<String, Data[]> config,
-            Map<TableNameExcelData, String[]> excelHeaderForeignKey,
-            Map<TableNameExcelData, Object[]> excelHeaderInnerConnections,
-            List<TableNameExcelData> excelHeaderTable,
-            TableNameExcelData column,
+            Map<TableAndColumnNameExcelData, String[]> excelHeaderForeignKey,
+            Map<TableAndColumnNameExcelData, Object[]> excelHeaderInnerConnections,
+            List<TableAndColumnNameExcelData> excelHeaderTable,
+            TableAndColumnNameExcelData column,
             Object[] data
     ) {
         Object[] infoToInsert;
@@ -220,24 +220,24 @@ public class MainController {
         if ((foreignKeyInfo = excelHeaderForeignKey.get(column)) != null
                 && (innerConnectionInfo = excelHeaderInnerConnections.get(column)) != null) {                               // [IF] EXISTS FK AND INNER_CONNECTIONS
 
-            TableNameExcelData tableNameExcelDataFromInnerConnection = excelHeaderTable.stream()
-                    .filter(tableNameExcelData -> tableNameExcelData.equals(innerConnectionInfo[0]))
+            TableAndColumnNameExcelData tableAndColumnNameExcelDataFromInnerConnection = excelHeaderTable.stream()
+                    .filter(tableAndColumnNameExcelData -> tableAndColumnNameExcelData.equals(innerConnectionInfo[0]))
                     .findFirst()
                     .orElse(null);
 
-            if (tableNameExcelDataFromInnerConnection == null) {
+            if (tableAndColumnNameExcelDataFromInnerConnection == null) {
                 System.out.println("[ERROR] No se ha encontrado la tabla para la columna " + column.getColumnName());
                 System.exit(1);
             }
 
                 Object[] dataFromExcel = DATA_TO_INSERT_INTO_DB
-                        .get(tableNameExcelDataFromInnerConnection.getTableName())
-                        .get(tableNameExcelDataFromInnerConnection.getColumnName());
+                        .get(tableAndColumnNameExcelDataFromInnerConnection.getTableName())
+                        .get(tableAndColumnNameExcelDataFromInnerConnection.getColumnName());
 
                 String[] innerConnectionColumnData = new String[]{
-                        excelHeaderForeignKey.get(tableNameExcelDataFromInnerConnection)[0],
-                        excelHeaderForeignKey.get(tableNameExcelDataFromInnerConnection)[2],
-                        excelHeaderForeignKey.get(tableNameExcelDataFromInnerConnection)[1],
+                        excelHeaderForeignKey.get(tableAndColumnNameExcelDataFromInnerConnection)[0],
+                        excelHeaderForeignKey.get(tableAndColumnNameExcelDataFromInnerConnection)[2],
+                        excelHeaderForeignKey.get(tableAndColumnNameExcelDataFromInnerConnection)[1],
                         dataFromExcel[0].toString(),
                         dataFromExcel[1].toString()
                 };
@@ -316,7 +316,7 @@ public class MainController {
             Object[] innerConnection,
             String[] foreignKeyInfo,
             Object[] data,
-            TableNameExcelData columnName,
+            TableAndColumnNameExcelData columnName,
             boolean hasInnerConnections
     ) {
         Map<String, Object[]> FOREIGN_KEY_INSERT_NEW_REGISTRY = new LinkedHashMap<>();
@@ -329,7 +329,7 @@ public class MainController {
         if (hasInnerConnections) {                                                                                          // [IF] THERE'S INNER_CONNECTIONS
             Object[] infoToInsert;
 
-            TableNameExcelData columnInfoFromInnerConnection = (TableNameExcelData) innerConnection[0];
+            TableAndColumnNameExcelData columnInfoFromInnerConnection = (TableAndColumnNameExcelData) innerConnection[0];
 
 
             if ((infoToInsert = DATA_TO_INSERT_INTO_DB                                                                          // [IF] INFO FROM THE OTHER COLUMNS ADDS IT
@@ -449,7 +449,6 @@ public class MainController {
 
         DB_CONNECTION.insertNewRegistry(tableName, dataForNewRegistry);
     }
-
 
     private int[] getIncrementData(IncreaseData increaseData) {
         int[] incrementData = new int[]{0, -1};

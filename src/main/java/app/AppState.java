@@ -6,5 +6,10 @@ import lombok.Setter;
 public class AppState {
     @Getter
     @Setter
-    boolean isAdding = true;
+    boolean hasFinishedReadingData = false;
+
+    @Getter
+    @Setter
+    boolean hasFinishedTransferFromEstructureExcel  = false;
+
 }

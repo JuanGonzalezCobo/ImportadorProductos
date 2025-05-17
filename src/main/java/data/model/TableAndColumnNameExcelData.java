@@ -5,7 +5,7 @@ import lombok.Data;
 
 @Data
 @AllArgsConstructor
-public class TableNameExcelData {
+public class TableAndColumnNameExcelData {
     private String columnName, tableName;
     private int columnNumber;
 }

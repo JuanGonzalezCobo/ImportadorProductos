@@ -15,12 +15,36 @@ import java.util.Objects;
 
 public class ExcelFileManager {
 
+    //*************************************************************************
+    //* ARGUMENTS                                                             *
+    //*************************************************************************
+
     @Getter
     public int headersRow = 0;
 
+    @Getter
+    public int estructureHeadersRow = 0;
+
+    public final String ESTRUCTURE_EXCEL_FILE = "estructura/estructura.xlsx";
+
     private List<Integer> excelColumnsWithHeader;
+    private List<Integer> estructureExcelColumnsWithHeader;
+
+    File estructuralExcelFile;
+    File dataExcelFile;
+
+    public final FileInputStream FIS_ESTRUCTURAL_EXCEL_FILE;
+
 
     private CellStyle HEADER_STYLE;
+
+    public ExcelFileManager() {
+        try {
+            FIS_ESTRUCTURAL_EXCEL_FILE = new FileInputStream("estructura/estructura.xlsx");
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     private void setColumnHeaderStyle(XSSFWorkbook wb) {
         HEADER_STYLE = wb.createCellStyle();
@@ -67,6 +91,42 @@ public class ExcelFileManager {
         }
     }
 
+    public List<List<Object[]>> readHeaderFromFile(XSSFWorkbook wb, boolean isEstructuralExcel) {
+        Sheet sheet = wb.getSheetAt(0);
+        Row row;
+
+        List<List<Object[]>> dataFromFile = new ArrayList<>();
+        List<Object[]> rowData = new ArrayList<>();
+        List<Integer> columnsWithHeader;
+
+        getHeadersRowAndColumnsUsed(sheet, isEstructuralExcel);
+
+        if (isEstructuralExcel) {
+            columnsWithHeader = estructureExcelColumnsWithHeader;
+
+            for (int i = 0; i < estructureHeadersRow - 1; i++) {  //TODO: MIRAR QUE ESTO NO EMPIECE POR 1
+                row = sheet.getRow(i);
+
+                getCellTypeAndData(wb, row, columnsWithHeader, rowData);
+
+                dataFromFile.add(rowData);
+
+            }
+            row = sheet.getRow(estructureHeadersRow);
+
+        } else {
+            columnsWithHeader = excelColumnsWithHeader;
+            row = sheet.getRow(headersRow);
+        }
+
+        getCellTypeAndData(wb, row, columnsWithHeader, rowData);
+        dataFromFile.add(rowData);
+
+        return dataFromFile;
+    }
+
+
+
     public List<List<Object[]>> readFile() {
         List<List<Object[]>> dataFromFile = new ArrayList<>();
 
@@ -74,67 +134,14 @@ public class ExcelFileManager {
              XSSFWorkbook wb = new XSSFWorkbook(fis)) {
             Sheet sheet = wb.getSheetAt(0);
 
-            //Comprobamos cual es la fila de las columnas de la base de datos
-            for (Row row : sheet) {
-                if (isHeaderRow(row)) {
-                    headersRow = row.getRowNum();
-                    ArrayList<Integer> columnsWithHeader = new ArrayList<>();
-                    for (Cell cell : row) {
-                        if (cell == null) continue;
-                        String cellValue = cell.getStringCellValue();
-                        if ((cellValue != null) && (!cellValue.isEmpty())) {
-                            columnsWithHeader.add(cell.getColumnIndex());
-                        }
-                    }
-                    excelColumnsWithHeader = columnsWithHeader.stream().toList();
-                    break;
-                }
-            }
+            getHeadersRowAndColumnsUsed(sheet, true);
 
             for (Row row : sheet) {
 
                 List<Object[]> rowData = new ArrayList<>();
 
-                for (Integer cellNum : excelColumnsWithHeader) {
+                getCellTypeAndData(wb, row, excelColumnsWithHeader, rowData);
 
-                    Cell cell = row.getCell(cellNum);
-
-                    if (cell == null) rowData.add(null);
-                    else {
-                        switch (cell.getCellType()) {
-                            case STRING -> rowData.add(new Object[]{
-                                    Types.VARCHAR,
-                                    cell.getStringCellValue().trim().toUpperCase()
-                            });
-
-                            case NUMERIC -> rowData.add(formatCellNumberValue(cell, null));
-
-                            case BOOLEAN -> rowData.add(new Object[]{
-                                    Types.INTEGER,
-                                    (cell.getBooleanCellValue()) ? 1 : 0
-                            });
-
-                            case FORMULA -> {
-                                FormulaEvaluator evaluator = wb.getCreationHelper().createFormulaEvaluator();
-                                CellValue cellValue = evaluator.evaluate(cell);
-                                if (cellValue.getCellType() == CellType.NUMERIC) {
-                                    rowData.add(formatCellNumberValue(cell, evaluator));
-                                } else {
-                                    String stringCellValue = cellValue.getStringValue();
-                                    if (!stringCellValue.isEmpty())
-                                        rowData.add(new Object[]{
-                                                Types.VARCHAR,
-                                                stringCellValue
-                                        });
-                                    else {
-                                        rowData.add(null);
-                                    }
-                                }
-                            }
-                            default -> rowData.add(null);
-                        }
-                    }
-                }
                 boolean todosNull = rowData.stream().allMatch(Objects::isNull);
                 if (!todosNull) {
                     dataFromFile.add(rowData);
@@ -223,4 +230,83 @@ public class ExcelFileManager {
         }
         return newValue;
     }
+
+
+    private void getCellTypeAndData(XSSFWorkbook wb,
+                                    Row row,
+                                    List<Integer> columnsWithHeader,
+                                    List<Object[]> rowData) {
+
+        for (Integer cellNum : columnsWithHeader) {
+
+            Cell cell = row.getCell(cellNum);
+            if (cell == null) rowData.add(null);
+            else {
+                switch (cell.getCellType()) {
+                    case STRING -> rowData.add(new Object[]{
+                            Types.VARCHAR,
+                            cell.getStringCellValue().trim().toUpperCase()
+                    });
+
+                    case NUMERIC -> rowData.add(formatCellNumberValue(cell, null));
+
+                    case BOOLEAN -> rowData.add(new Object[]{
+                            Types.INTEGER,
+                            (cell.getBooleanCellValue()) ? 1 : 0
+                    });
+
+                    case FORMULA -> {
+                        FormulaEvaluator evaluator = wb.getCreationHelper().createFormulaEvaluator();
+                        CellValue cellValue = evaluator.evaluate(cell);
+                        if (cellValue.getCellType() == CellType.NUMERIC) {
+                            rowData.add(formatCellNumberValue(cell, evaluator));
+                        } else {
+                            String stringCellValue = cellValue.getStringValue();
+                            if (!stringCellValue.isEmpty())
+                                rowData.add(new Object[]{
+                                        Types.VARCHAR,
+                                        stringCellValue.trim().toUpperCase()
+                                });
+                            else {
+                                rowData.add(null);
+                            }
+                        }
+                    }
+                    default -> rowData.add(null);
+                }
+            }
+        }
+    }
+
+    private void getHeadersRowAndColumnsUsed(Sheet sheet, boolean isEstructuralExcel) {
+        for (Row row : sheet) {
+            if (isHeaderRow(row)) {
+                int rowNum = row.getRowNum();
+
+                if (isEstructuralExcel)
+                    estructureHeadersRow = rowNum;
+                else
+                    headersRow = rowNum;
+
+                ArrayList<Integer> columnsWithHeader = new ArrayList<>();
+                for (Cell cell : row) {
+                    if (cell == null) continue;
+                    String cellValue = cell.getStringCellValue();
+                    if ((cellValue != null) && (!cellValue.isEmpty())) {
+                        columnsWithHeader.add(cell.getColumnIndex());
+                    }
+                }
+                List<Integer> columnsWithHeaderList = columnsWithHeader.stream().toList();
+
+                if (isEstructuralExcel)
+                    estructureExcelColumnsWithHeader = columnsWithHeaderList;
+                else
+                    excelColumnsWithHeader = columnsWithHeaderList;
+                break;
+            }
+        }
+    }
+
+
+    //TODO: CREAR EL QUE LEE, Y POSTERIORMENTE RECOGE (DOS FUNCIONES DIFERENTES) PARA SER EXACTOS
 }
