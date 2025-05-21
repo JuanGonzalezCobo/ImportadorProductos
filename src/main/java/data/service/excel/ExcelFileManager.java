@@ -1,6 +1,7 @@
 package data.service.excel;
 
 import app.AppConsoleStyle;
+import data.model.TableAndColumnNameExcelData;
 import lombok.Getter;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -9,14 +10,74 @@ import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.io.*;
 import java.sql.Types;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 public class ExcelFileManager {
 
     //*************************************************************************
-    //* ARGUMENTS                                                             *
+    //* EXCEL FILES NAMES                                                     *
+    //*************************************************************************
+
+    public final String ESTRUCTURE_EXCEL_FILE = "estructura\\estructura.xlsx";
+    private String DATA_EXCEL_FILE;
+
+    private String getFileURL() {
+        JFileChooser fileChooser = new JFileChooser(new File("").getAbsolutePath());
+
+        FileNameExtensionFilter filter = new FileNameExtensionFilter("Archivos de excel",
+                "xlsx", "xls");
+        fileChooser.setFileFilter(filter);
+        fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+        int returnVal = fileChooser.showOpenDialog(null);
+        fileChooser.setMultiSelectionEnabled(false);
+
+        if (returnVal == JFileChooser.APPROVE_OPTION) {
+            DATA_EXCEL_FILE = fileChooser.getSelectedFile().getAbsolutePath();
+            return fileChooser.getSelectedFile().getAbsolutePath();
+        } else {
+            System.out.println(AppConsoleStyle.RED + "[ERROR] No se seleccionó el archivo" + AppConsoleStyle.RESET);
+            System.exit(1);
+            return null;
+        }
+    }
+
+    //*************************************************************************
+    //* STREAMS                                                               *
+    //*************************************************************************
+
+    @Getter
+    public final FileInputStream FIS_ESTRUCTURAL_EXCEL_FILE;
+
+    @Getter
+    public FileInputStream FIS_DATA_EXCEL_FILE;
+
+    private XSSFWorkbook wbDataExcel;
+    private XSSFWorkbook wbEstructureExcel;
+
+    public void closeStreamsFromEstructuralExcelFile() {
+        try {
+            wbEstructureExcel.close();
+            FIS_ESTRUCTURAL_EXCEL_FILE.close();
+        } catch (IOException e) {
+            System.out.println(AppConsoleStyle.RED
+                    + "[ERROR] No se pudo cerrar el archivo de estructura"
+                    + AppConsoleStyle.RESET);
+        }
+    }
+
+    public void closeStreamsFromDataExcelFile() {
+        try {
+            wbDataExcel.close();
+            FIS_DATA_EXCEL_FILE.close();
+        } catch (IOException e) {
+            System.out.println(AppConsoleStyle.RED
+                    + "[ERROR] No se pudo cerrar el archivo de los datos"
+                    + AppConsoleStyle.RESET);
+        }
+    }
+
+    //*************************************************************************
+    //* HEADER'S INFO                                                         *
     //*************************************************************************
 
     @Getter
@@ -25,29 +86,14 @@ public class ExcelFileManager {
     @Getter
     public int estructureHeadersRow = 0;
 
-    public final String ESTRUCTURE_EXCEL_FILE = "estructura/estructura.xlsx";
-
     private List<Integer> excelColumnsWithHeader;
     private List<Integer> estructureExcelColumnsWithHeader;
 
-    File estructuralExcelFile;
-    File dataExcelFile;
-
-    //public final FileInputStream FIS_ESTRUCTURAL_EXCEL_FILE;
-
+    //*************************************************************************
+    //* HEADER STYLE                                                          *
+    //*************************************************************************
 
     private CellStyle HEADER_STYLE;
-
-    /*
-    public ExcelFileManager() {
-        try {
-            FIS_ESTRUCTURAL_EXCEL_FILE = new FileInputStream("estructura/estructura.xlsx");
-        } catch (FileNotFoundException e) {
-            throw new RuntimeException(e);
-        }
-    }
-    */
-
 
     private void setColumnHeaderStyle(XSSFWorkbook wb) {
         HEADER_STYLE = wb.createCellStyle();
@@ -73,33 +119,43 @@ public class ExcelFileManager {
         return false;
     }
 
+    //*************************************************************************
+    //* CONSTRUCTOR                                                           *
+    //*************************************************************************
 
-    private String getFileURL() {
-        JFileChooser fileChooser = new JFileChooser(new File("").getAbsolutePath());
-
-        FileNameExtensionFilter filter = new FileNameExtensionFilter("Archivos de excel",
-                "xlsx", "xls");
-        fileChooser.setFileFilter(filter);
-        fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-        int returnVal = fileChooser.showOpenDialog(null);
-        fileChooser.setMultiSelectionEnabled(false);
-
-
-        if (returnVal == JFileChooser.APPROVE_OPTION) {
-            return fileChooser.getSelectedFile().getAbsolutePath();
-        } else {
-            System.out.println(AppConsoleStyle.RED + "[ERROR] No se seleccionó el archivo" + AppConsoleStyle.RESET);
-            System.exit(1);
-            return null;
+    public ExcelFileManager() {
+        try {
+            FIS_ESTRUCTURAL_EXCEL_FILE = new FileInputStream(ESTRUCTURE_EXCEL_FILE);
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
         }
     }
 
-    public List<List<Object[]>> readHeaderFromFile(XSSFWorkbook wb, boolean isEstructuralExcel) {
+    //*************************************************************************
+    //* METHODS                                                               *
+    //*************************************************************************
+
+    public List<List<Object[]>> readHeaderFromFile(boolean isEstructuralExcel) {
+        XSSFWorkbook wb = null;
+        try {
+            if (!isEstructuralExcel) FIS_DATA_EXCEL_FILE = new FileInputStream(getFileURL());
+            if (isEstructuralExcel) {
+                wbEstructureExcel = new XSSFWorkbook(FIS_ESTRUCTURAL_EXCEL_FILE);
+                wb = wbEstructureExcel;
+            } else {
+                wbDataExcel = new XSSFWorkbook(FIS_DATA_EXCEL_FILE);
+                wb = wbDataExcel;
+            }
+        } catch (IOException e) {
+            System.out.println("[ERROR] No se pudo leer el archivo de estructura o datos");
+            System.exit(1);
+        }
+
         Sheet sheet = wb.getSheetAt(0);
         Row row;
 
         List<List<Object[]>> dataFromFile = new ArrayList<>();
-        List<Object[]> rowData = new ArrayList<>();
+        List<Object[]> rowData;
         List<Integer> columnsWithHeader;
 
         getHeadersRowAndColumnsUsed(sheet, isEstructuralExcel);
@@ -107,57 +163,102 @@ public class ExcelFileManager {
         if (isEstructuralExcel) {
             columnsWithHeader = estructureExcelColumnsWithHeader;
 
-            for (int i = 0; i < estructureHeadersRow - 1; i++) {  //TODO: MIRAR QUE ESTO NO EMPIECE POR 1
+            for (int i = 0; i < estructureHeadersRow; i++) {
                 row = sheet.getRow(i);
-
-                getCellTypeAndData(wb, row, columnsWithHeader, rowData);
+                rowData = new ArrayList<>();
+                getCellTypeAndData(row, columnsWithHeader, rowData, null);
 
                 dataFromFile.add(rowData);
 
             }
             row = sheet.getRow(estructureHeadersRow);
 
+
         } else {
             columnsWithHeader = excelColumnsWithHeader;
             row = sheet.getRow(headersRow);
         }
 
-        getCellTypeAndData(wb, row, columnsWithHeader, rowData);
+        rowData = new ArrayList<>();
+        getCellTypeAndData(row, columnsWithHeader, rowData, null);
         dataFromFile.add(rowData);
 
         return dataFromFile;
     }
 
-
-
-    public List<List<Object[]>> readFile() {
+    public List<List<Object[]>> readDataFile() {
         List<List<Object[]>> dataFromFile = new ArrayList<>();
 
-        try (FileInputStream fis = new FileInputStream(getFileURL());
-             XSSFWorkbook wb = new XSSFWorkbook(fis)) {
-            Sheet sheet = wb.getSheetAt(0);
+        Sheet sheet = wbDataExcel.getSheetAt(0);
 
-            getHeadersRowAndColumnsUsed(sheet, true);
+        for (int i = headersRow + 1; i < sheet.getPhysicalNumberOfRows(); i++) {
+            Row row = sheet.getRow(i);
 
-            for (Row row : sheet) {
+            List<Object[]> rowData = new ArrayList<>();
 
-                List<Object[]> rowData = new ArrayList<>();
+            getCellTypeAndData(row, excelColumnsWithHeader, rowData, null);
 
-                getCellTypeAndData(wb, row, excelColumnsWithHeader, rowData);
-
-                boolean todosNull = rowData.stream().allMatch(Objects::isNull);
-                if (!todosNull) {
-                    dataFromFile.add(rowData);
-                }
+            boolean todosNull = rowData.stream().allMatch(Objects::isNull);
+            if (!todosNull) {
+                dataFromFile.add(rowData);
             }
-
-        } catch (FileNotFoundException e) {
-            System.out.println(AppConsoleStyle.RED + "[ERROR] No se pudo encontrar el archivo" + AppConsoleStyle.RESET);
-        } catch (IOException e) {
-            System.out.println(AppConsoleStyle.RED + "[ERROR] No se pudo leer el archivo" + AppConsoleStyle.RESET);
         }
         return dataFromFile;
     }
+
+    public List<List<Object[]>> processOfGettingParsedDataFromEstructureFile(Queue<Map<TableAndColumnNameExcelData, Object[]>> data) {
+        List<List<Object[]>> dataFromFile = new ArrayList<>();
+        Sheet sheet = wbEstructureExcel.getSheetAt(0);
+
+        while (!data.isEmpty()) {
+            Map<TableAndColumnNameExcelData, Object[]> entry = data.poll();
+            insertDataInEstructureFile(sheet, entry);
+
+            FormulaEvaluator evaluator = wbEstructureExcel.getCreationHelper().createFormulaEvaluator();
+            evaluator.clearAllCachedResultValues();
+            wbEstructureExcel.setForceFormulaRecalculation(true);
+            dataFromFile.add(readEstructuralFile(wbEstructureExcel, evaluator));
+        }
+
+        return dataFromFile;
+    }
+
+    private List<Object[]> readEstructuralFile(XSSFWorkbook wb, FormulaEvaluator evaluator) {
+        List<Object[]> rowData = new ArrayList<>();
+        Sheet sheet = wb.getSheetAt(0);
+        Row row = sheet.getRow(estructureHeadersRow + 1);
+
+        getCellTypeAndData(row, estructureExcelColumnsWithHeader, rowData, evaluator);
+
+        return rowData;
+    }
+
+    private void insertDataInEstructureFile(Sheet sheet, Map<TableAndColumnNameExcelData, Object[]> dataToInsert) {
+        //First row is the header
+        Row row = sheet.getRow(estructureHeadersRow);
+
+        //Second row is where to insert
+        Row rowToInsert = sheet.getRow(estructureHeadersRow + 1);
+        int columnToInsert = -1;
+
+        for (Map.Entry<TableAndColumnNameExcelData, Object[]> entry : dataToInsert.entrySet()) {
+            for (int i = 0; i < row.getPhysicalNumberOfCells(); i++) {
+                Cell cell = row.getCell(i);
+                StringBuilder nombreTabla = new StringBuilder(entry.getKey().getTableName()
+                        .concat(".")
+                        .concat(entry.getKey().getColumnName()));
+                if (entry.getKey().getColumnNumber() != 0)
+                    nombreTabla.append(".").append(entry.getKey().getColumnNumber());
+                if (cell.getStringCellValue().equals(nombreTabla.toString())) {
+                    columnToInsert = i;
+                    break;
+                }
+            }
+            Cell cellToInsert = rowToInsert.createCell(columnToInsert);
+            insertValue(cellToInsert, entry.getValue());
+        }
+    }
+
 
     public Void writeFile(String fileName, String[][] header) {
         try (FileOutputStream fos = new FileOutputStream(fileName.concat(".xlsx"));
@@ -188,6 +289,53 @@ public class ExcelFileManager {
         }
         return null;
     }
+
+
+    private void getCellTypeAndData(Row row,
+                                    List<Integer> columnsWithHeader,
+                                    List<Object[]> rowData,
+                                    FormulaEvaluator evaluator) {
+
+        for (Integer cellNum : columnsWithHeader) {
+
+            Cell cell = row.getCell(cellNum);
+            if (cell == null) rowData.add(null);
+            else {
+                switch (cell.getCellType()) {
+                    case STRING -> rowData.add(new Object[]{
+                            Types.VARCHAR,
+                            cell.getStringCellValue().trim().toUpperCase()
+                    });
+
+                    case NUMERIC -> rowData.add(formatCellNumberValue(cell, null));
+
+                    case BOOLEAN -> rowData.add(new Object[]{
+                            Types.INTEGER,
+                            (cell.getBooleanCellValue()) ? 1 : 0
+                    });
+
+                    case FORMULA -> {
+                        CellValue cellValue = evaluator.evaluate(cell);
+                        if (cellValue.getCellType() == CellType.NUMERIC) {
+                            rowData.add(formatCellNumberValue(cell, evaluator));
+                        } else {
+                            String stringCellValue = cellValue.getStringValue();
+                            if (!stringCellValue.isEmpty())
+                                rowData.add(new Object[]{
+                                        Types.VARCHAR,
+                                        stringCellValue.trim().toUpperCase()
+                                });
+                            else {
+                                rowData.add(null);
+                            }
+                        }
+                    }
+                    default -> rowData.add(null);
+                }
+            }
+        }
+    }
+
 
     private Object[] formatCellNumberValue(Cell cell, FormulaEvaluator formulaEvaluator) {
         Object[] newValue;
@@ -234,61 +382,13 @@ public class ExcelFileManager {
         return newValue;
     }
 
-
-    private void getCellTypeAndData(XSSFWorkbook wb,
-                                    Row row,
-                                    List<Integer> columnsWithHeader,
-                                    List<Object[]> rowData) {
-
-        for (Integer cellNum : columnsWithHeader) {
-
-            Cell cell = row.getCell(cellNum);
-            if (cell == null) rowData.add(null);
-            else {
-                switch (cell.getCellType()) {
-                    case STRING -> rowData.add(new Object[]{
-                            Types.VARCHAR,
-                            cell.getStringCellValue().trim().toUpperCase()
-                    });
-
-                    case NUMERIC -> rowData.add(formatCellNumberValue(cell, null));
-
-                    case BOOLEAN -> rowData.add(new Object[]{
-                            Types.INTEGER,
-                            (cell.getBooleanCellValue()) ? 1 : 0
-                    });
-
-                    case FORMULA -> {
-                        FormulaEvaluator evaluator = wb.getCreationHelper().createFormulaEvaluator();
-                        CellValue cellValue = evaluator.evaluate(cell);
-                        if (cellValue.getCellType() == CellType.NUMERIC) {
-                            rowData.add(formatCellNumberValue(cell, evaluator));
-                        } else {
-                            String stringCellValue = cellValue.getStringValue();
-                            if (!stringCellValue.isEmpty())
-                                rowData.add(new Object[]{
-                                        Types.VARCHAR,
-                                        stringCellValue.trim().toUpperCase()
-                                });
-                            else {
-                                rowData.add(null);
-                            }
-                        }
-                    }
-                    default -> rowData.add(null);
-                }
-            }
-        }
-    }
-
     private void getHeadersRowAndColumnsUsed(Sheet sheet, boolean isEstructuralExcel) {
         for (Row row : sheet) {
             if (isHeaderRow(row)) {
                 int rowNum = row.getRowNum();
 
                 if (isEstructuralExcel)
-                    //estructureHeadersRow = rowNum;
-                    headersRow = rowNum;
+                    estructureHeadersRow = rowNum;
                 else
                     headersRow = rowNum;
 
@@ -300,11 +400,10 @@ public class ExcelFileManager {
                         columnsWithHeader.add(cell.getColumnIndex());
                     }
                 }
-                List<Integer> columnsWithHeaderList = columnsWithHeader.stream().toList();
+                List<Integer> columnsWithHeaderList = new ArrayList<>(columnsWithHeader.stream().toList());
 
                 if (isEstructuralExcel)
-                    //estructureExcelColumnsWithHeader = columnsWithHeaderList;
-                    excelColumnsWithHeader = columnsWithHeaderList;
+                    estructureExcelColumnsWithHeader = columnsWithHeaderList;
                 else
                     excelColumnsWithHeader = columnsWithHeaderList;
                 break;
@@ -312,6 +411,23 @@ public class ExcelFileManager {
         }
     }
 
-
-    //TODO: CREAR EL QUE LEE, Y POSTERIORMENTE RECOGE (DOS FUNCIONES DIFERENTES) PARA SER EXACTOS
+    private void insertValue(Cell cell, Object[] value) {
+        if (cell == null || value == null) return;
+        switch ((int) value[0]) {
+            case Types.VARCHAR:
+                cell.setCellValue((String) value[1]);
+                break;
+            case Types.INTEGER:
+                cell.setCellValue((int) value[1]);
+                break;
+            case Types.DOUBLE:
+                cell.setCellValue((double) value[1]);
+                break;
+            case Types.DATE:
+                cell.setCellValue((Date) value[1]);
+                break;
+            default:
+                cell.setBlank();
+        }
+    }
 }

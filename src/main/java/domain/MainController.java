@@ -24,9 +24,11 @@ public class MainController {
     private final DataBaseConnection DB_CONNECTION;
 
     private final Map<String, Map<String, Object[]>> DATA_TO_INSERT_INTO_DB = new LinkedHashMap<>();
+    private Map<String, List<String>> pkPerTable;
 
 
     public MainController(AppState state, AppConfig config) {
+
         this.CONFIG_FILE_MANAGER = new ConfigFileManager();
         this.EXCEL_FILE_MANAGER = new ExcelFileManager();
 
@@ -36,16 +38,17 @@ public class MainController {
                          INSERCIÓN EN BASE DE DATOS A PARTIR DE EXCEL
                 ----------------------------------------------------------------""");
 
-        this.REPOSITORY = new Repository(CONFIG_FILE_MANAGER.loadConfig());
+        this.REPOSITORY = new Repository(CONFIG_FILE_MANAGER, EXCEL_FILE_MANAGER);
 
         this.CONFIG = config;
         this.STATE = state;
 
-        CONFIG.setDatabaseConfig(REPOSITORY.getDataBaseConfig());
+        CONFIG.setDatabaseConfig(REPOSITORY.getDEFAULT_DB_FROM_CONFIG());
 
         this.DB_CONNECTION = new DataBaseConnection(getDataBaseInfo());
 
         mainThread();
+
     }
 
     private String[] getDataBaseInfo() {
@@ -60,13 +63,24 @@ public class MainController {
 
     private void mainThread() {
         REPOSITORY.setRepositoryData(EXCEL_FILE_MANAGER);
+        REPOSITORY.setDATA_FROM_EXCEL(
+                EXCEL_FILE_MANAGER
+                        .processOfGettingParsedDataFromEstructureFile(REPOSITORY.getDATA_FROM_DATA_EXCEL()));
 
+        pkPerTable = getPK();
         mainInsertInDB();
-
+        System.out.println("[STATUS] Se ha finalizado el proceso");
         DB_CONNECTION.closeConnection();
+        EXCEL_FILE_MANAGER.closeStreamsFromEstructuralExcelFile();
+        EXCEL_FILE_MANAGER.closeStreamsFromDataExcelFile();
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
         App.clearConsole();
-    }
 
+    }
 
     //*************************************************************************
     //* MAIN FUNCTIONALITY                                                    *
@@ -75,15 +89,15 @@ public class MainController {
     private void mainInsertInDB() {
         Map<TableAndColumnNameExcelData, Object[]> dataRow;
 
-        List<String> excelAllTablesHeaders;                                                                                 // LISTA QUE VIENE DEL SET DONDE APARECEN TODAS LAS TABLAS
+        List<String> excelAllTablesHeaders;                                                                                          // LISTA QUE VIENE DEL SET DONDE APARECEN TODAS LAS TABLAS
         Map<TableAndColumnNameExcelData, String[]> excelHeaderForeignKey = REPOSITORY.getFOREIGN_KEY_HEADERS_FROM_EXCEL();           // MAPA DE LAS FK, CON _KEYS_ COMO LAS COLUMNAS DEL EXCEL
         Map<TableAndColumnNameExcelData, Object[]> excelHeaderInnerConnections = REPOSITORY.getINNER_DATA_HEADERS_FROM_EXCEL();      // MAPA DE LOS INNER_CONNECTIONS, CON _KEYS_ COMO LAS COLUMNA
 
-        Map<String, Data[]> tableConfig = REPOSITORY.getDEFAULT_TABLES_DATA_FROM_CONFIG();                                  // MAPA DE LOS DATOS DE LAS TABLAS EN EL ARCHIVO DE config.json
-        Map<String, String[]> updateConfig = REPOSITORY.getDEFAULT_UPDATE_FROM_CONFIG();                                    // MAPA DE LOS DATOS DE LA COLUMNA IMPORTANTE POR TABLA EN EL ARCHIVO DE config.json PARA ACTUALIZAR
-        Map<String, List<Data>> dataPerTableConfig = new LinkedHashMap<>();                                                 // MAPA DE LOS DATOS QUE HAY EN ARCHIVO config.json, CON _KEYS_ CO
+        Map<String, Data[]> tableConfig = REPOSITORY.getDEFAULT_TABLES_DATA_FROM_CONFIG();                                           // MAPA DE LOS DATOS DE LAS TABLAS EN EL ARCHIVO DE config.json
+        Map<String, String[]> updateConfig = REPOSITORY.getDEFAULT_UPDATE_FROM_CONFIG();                                             // MAPA DE LOS DATOS DE LA COLUMNA IMPORTANTE POR TABLA EN EL ARCHIVO DE config.json PARA ACTUALIZAR
+        Map<String, List<Data>> dataPerTableConfig = new LinkedHashMap<>();                                                          // MAPA DE LOS DATOS QUE HAY EN ARCHIVO config.json, CON _KEYS_ CO
 
-        String tableName = null;                                                                                            // STRING, NOMBRE DE LA TABLA POR COLUMNA
+        String tableName = null;                                                                                                     // STRING, NOMBRE DE LA TABLA POR COLUMNA
         int tableNumber = 0;
 
         while ((dataRow = REPOSITORY.getDATA_FROM_EXCEL().poll()) != null) {
@@ -107,7 +121,7 @@ public class MainController {
             //*    LOOP FOR EACH COLUMN IN THE EXCEL FILE     *
             //*************************************************
 
-            for (TableAndColumnNameExcelData column : REPOSITORY.getCOLUMN_AND_TABLE_FROM_EXCEL()) {
+            for (TableAndColumnNameExcelData column : REPOSITORY.getCOLUMN_AND_TABLE_FROM_ESTRUCTURE_EXCEL()) {
 
                 //*************************************************
                 //*    GETTING THE NAME OF THE COLUMN'S TABLE     *
@@ -151,7 +165,7 @@ public class MainController {
                             tableConfig,
                             excelHeaderForeignKey,
                             excelHeaderInnerConnections,
-                            REPOSITORY.getCOLUMN_AND_TABLE_FROM_EXCEL(),
+                            REPOSITORY.getCOLUMN_AND_TABLE_FROM_ESTRUCTURE_EXCEL(),
                             column,
                             new Object[]{columnInfoFromConfig.getType(), columnInfoFromConfig.getData()}
                     );
@@ -161,7 +175,7 @@ public class MainController {
                             tableConfig,
                             excelHeaderForeignKey,
                             excelHeaderInnerConnections,
-                            REPOSITORY.getCOLUMN_AND_TABLE_FROM_EXCEL(),
+                            REPOSITORY.getCOLUMN_AND_TABLE_FROM_ESTRUCTURE_EXCEL(),
                             column,
                             dataRow.get(column)
                     );
@@ -203,6 +217,14 @@ public class MainController {
         }
     }
 
+    private Map<String, List<String>> getPK() {
+        Map<String, List<String>> PKs = new HashMap<>();
+        for (String table : REPOSITORY.getALL_TABLES_EXCEL()) {
+            PKs.put(table, DB_CONNECTION.getPrimaryKeys(table));
+        }
+        return PKs;
+    }
+
 
     private Object[] createDataToInsert(
             Map<String, Data[]> config,
@@ -221,7 +243,8 @@ public class MainController {
                 && (innerConnectionInfo = excelHeaderInnerConnections.get(column)) != null) {                               // [IF] EXISTS FK AND INNER_CONNECTIONS
 
             TableAndColumnNameExcelData tableAndColumnNameExcelDataFromInnerConnection = excelHeaderTable.stream()
-                    .filter(tableAndColumnNameExcelData -> tableAndColumnNameExcelData.equals(innerConnectionInfo[0]))
+                    .filter(tableAndColumnNameExcelData ->
+                            tableAndColumnNameExcelData.equals(innerConnectionInfo[0]))
                     .findFirst()
                     .orElse(null);
 
@@ -381,7 +404,6 @@ public class MainController {
                                             Map<String, Data[]> tableConfig,
                                             Map<String, List<Data>> dataPerTableConfig) {
         try {
-
             if (dataPerTableConfig.get(tableName) != null && !dataPerTableConfig.get(tableName).isEmpty()) {
                 Map<String, Object[]> dataToInsertAux = DATA_TO_INSERT_INTO_DB.get(tableName);
                 addLastInfoFromConfigList(dataToInsertAux, dataPerTableConfig.get(tableName));
@@ -401,15 +423,8 @@ public class MainController {
                     Object[] dataFromExcel;
                     if ((dataFromExcel = DATA_TO_INSERT_INTO_DB.get(tableName).get(updateColumn)) != null) {
                         mapOfUpdatableColumns.put(updateColumn, dataFromExcel);
-                    } else {
-                        throw new Exception("[ERROR] No se ha encontrado los datos para la columna "
-                                + updateColumn + " en la tabla " + tableName);
                     }
                 }
-
-            } else {
-                throw new Exception("[ERROR] No se han añadido en el archivo de configuración los datos necesarios " +
-                        "para una posible actualización de la tabla " + tableName + " en la base de datos.");
             }
 
             if (DB_CONNECTION.registryExistsInDB(tableName, mapOfUpdatableColumns))
@@ -446,6 +461,12 @@ public class MainController {
                 });
             }
         }
+
+        List<String> tableFK;
+        if ((tableFK = pkPerTable.get(tableName)) != null)
+            for (String column : tableFK) {
+                if (!dataForNewRegistry.containsKey(column)) return;
+            }
 
         DB_CONNECTION.insertNewRegistry(tableName, dataForNewRegistry);
     }

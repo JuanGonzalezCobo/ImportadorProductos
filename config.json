@@ -1348,6 +1348,26 @@
             "name": "CERRADO",
             "type": "int",
             "data": 0
+          },
+          {
+            "name": "TIPO",
+            "type": "int",
+            "data": 400
+          },
+          {
+            "name": "GRUP1",
+            "type": "int",
+            "data": 4
+          },
+          {
+            "name": "GRUP2",
+            "type": "int",
+            "data": 40
+          },
+          {
+            "name": "GRUP3",
+            "type": "int",
+            "data": 400
           }
         ]
       },
@@ -1358,6 +1378,11 @@
             "name": "LINEA",
             "type": "int",
             "data": 1
+          },
+          {
+            "name": "MARGEN",
+            "type": "int",
+            "data": 0
           }
         ]
       }

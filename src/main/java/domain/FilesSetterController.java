@@ -4,7 +4,6 @@ import app.App;
 import app.AppConfig;
 import app.AppState;
 import app.threads.WriteOnFileThread;
-import data.model.Data;
 import data.model.DbData;
 import data.model.IncreaseData;
 import data.repository.Repository;
@@ -31,22 +30,21 @@ public class FilesSetterController {
     public FilesSetterController(AppState state, AppConfig config, Scanner scanner) {
         this.SCANNER = scanner;
         this.CONFIG_FILE_MANAGER = new ConfigFileManager();
+        this.EXCEL_FILE_MANAGER = new ExcelFileManager();
         App.clearConsole();
         System.out.println("""
         ----------------------------------------------------------------
                  CREACIÓN DE FICHEROS PARA EXCEL y config.json
         ----------------------------------------------------------------""");
 
-        this.REPOSITORY = new Repository(CONFIG_FILE_MANAGER.loadConfig());
+        this.REPOSITORY = new Repository(CONFIG_FILE_MANAGER, EXCEL_FILE_MANAGER);
 
         this.CONFIG = config;
         this.STATE = state;
 
-        CONFIG.setDatabaseConfig(REPOSITORY.getDataBaseConfig());
+        CONFIG.setDatabaseConfig(REPOSITORY.getDEFAULT_DB_FROM_CONFIG());
 
         this.DB_CONNECTION = new DataBaseConnection(getDataBaseInfo());
-
-        this.EXCEL_FILE_MANAGER = new ExcelFileManager();
 
         mainThread();
     }
@@ -91,8 +89,8 @@ public class FilesSetterController {
                 ),
                 new WriteOnFileThread(
                         new Object[]{
-                                REPOSITORY.getSECTIONS_CONFIG().get("DbConfig"),
-                                REPOSITORY.getSECTIONS_CONFIG().get("Incrementos"),
+                                REPOSITORY.getDEFAULT_DB_FROM_CONFIG(),
+                                REPOSITORY.getDEFAULT_INCREASE_FROM_CONFIG(),
                                 tableName,
                                 columnInfoFromTable
                         },

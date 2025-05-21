@@ -11,7 +11,7 @@ public class App {
     private final AppState STATE;
     private final Scanner SCANNER;
 
-    private final int[] choosableOptions = new int[] { 1, 2, 3 };
+    private final int[] CHOOSABLE_OPTIONS = new int[] { 1, 2, 3 };
 
     private final String MENU_PROMPT = """
             ----------------------------------------------------------------
@@ -61,7 +61,7 @@ public class App {
         int intResponse;
         intResponse = Integer.parseInt(response.trim());
 
-        if (Arrays.stream(choosableOptions)
+        if (Arrays.stream(CHOOSABLE_OPTIONS)
                 .allMatch(value -> intResponse != value))
             throw new NumberFormatException();
 
