@@ -56,12 +56,6 @@
         "column": "CODIGO",
         "type": "int",
         "data": 8
-      },
-      {
-        "name": "ALMACEN",
-        "column": "CODIGO",
-        "type": "int",
-        "data": 16
       }
     ]
   },
@@ -113,19 +107,6 @@
         "data": [
           "NOMBRE",
           "FAMILIA"
-        ]
-      },
-      {
-        "name": "ALMACEN",
-        "data": [
-          "NOMBRE"
-        ]
-      },
-      {
-        "name": "STOCKS",
-        "data": [
-          "CODIGO_ARTICULO",
-          "CODIGO_ALMACEN"
         ]
       }
     ]
@@ -307,8 +288,7 @@
           },
           {
             "name": "STOCK",
-            "type": "int",
-            "data": 0
+            "type": "int"
           },
           {
             "name": "POR_AREA",
@@ -1368,26 +1348,6 @@
             "name": "CERRADO",
             "type": "int",
             "data": 0
-          },
-          {
-            "name": "TIPO",
-            "type": "int",
-            "data": 400
-          },
-          {
-            "name": "GRUP1",
-            "type": "int",
-            "data": 4
-          },
-          {
-            "name": "GRUP2",
-            "type": "int",
-            "data": 40
-          },
-          {
-            "name": "GRUP3",
-            "type": "int",
-            "data": 400
           }
         ]
       },
@@ -1398,36 +1358,6 @@
             "name": "LINEA",
             "type": "int",
             "data": 1
-          },
-          {
-            "name": "MARGEN",
-            "type": "int",
-            "data": 0
-          }
-        ]
-      },
-      {
-        "name": "STOCKS",
-        "data": [
-          {
-            "name": "STOCK",
-            "type": "int",
-            "data": 0
-          },
-          {
-            "name": "STOCK_MIN",
-            "type": "int",
-            "data": 0
-          },
-          {
-            "name": "STOCK_MAX",
-            "type": "int",
-            "data": 0
-          },
-          {
-            "name": "STOCK_RECOMENDADO",
-            "type": "int",
-            "data": 0
           }
         ]
       }

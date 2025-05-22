@@ -1,5 +1,6 @@
 package data.service.db;
 
+import app.AppConsoleStyle;
 import data.service.db.model.Column;
 import lombok.Getter;
 
@@ -32,7 +33,9 @@ public class DataBaseConnection {
                     .getConnection(url.concat(database), properties);
             System.out.println("[STATUS] Conexión exitosa a la base de datos.");
         } catch (SQLException e) {
-            System.out.println("[ERROR] No se conectó con la base de datos: " + e.getMessage());
+            System.out.println(AppConsoleStyle.RED
+                    + "[ERROR] No se conectó con la base de datos."
+                    + "\n(Detalle): " + e.getMessage() + AppConsoleStyle.RESET);
             System.exit(1);
         }
         return con;
@@ -42,7 +45,10 @@ public class DataBaseConnection {
         try {
             connection.close();
         } catch (SQLException e) {
-            System.out.println("[ERROR] No se desconectó bien la base de datos");
+            System.out.println(AppConsoleStyle.RED
+                    + "[ERROR] No se desconectó con la base de datos."
+                    + "\n(Detalle): " + e.getMessage() + AppConsoleStyle.RESET);
+            System.exit(1);
         }
     }
 
@@ -50,41 +56,6 @@ public class DataBaseConnection {
     //* DATABASE METHODS                                                      *
     //*************************************************************************
 
-    public boolean tableExists(String tableName) {
-        try {
-            DatabaseMetaData dbmd = connection.getMetaData();
-            ResultSet r = dbmd
-                    .getTables("public",
-                            "%",
-                            tableName.trim().toUpperCase(),
-                            null);
-            return r.next();
-        } catch (SQLException e) {
-            System.out.println("[ERROR] No se pudo comprobar si la tabla existe: " + e.getMessage());
-            return false;
-        }
-    }
-
-
-    public String[] compareTableNames(String tableNameCompared) {
-        ArrayList<String> tables = new ArrayList<>();
-        try {
-            DatabaseMetaData dbmd = connection.getMetaData();
-            ResultSet r = dbmd
-                    .getTables("public",
-                            "%",
-                            "%" + tableNameCompared.trim().toUpperCase() + "%",
-                            null);
-            while (r.next()) {
-                String tableName = r.getString(3);
-                tables.add(tableName);
-            }
-
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-        return tables.toArray(new String[0]);
-    }
 
     public Column[] getAllColumns(String tableName) {
         ArrayList<Column> columns = new ArrayList<>();
@@ -100,30 +71,31 @@ public class DataBaseConnection {
                 );
             }
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException(AppConsoleStyle.RED
+                    + "[ERROR] No se pudo obtener el nombre de las columnas en la tabla"
+                    + tableName + "\n(Detalle): " + e.getMessage() + AppConsoleStyle.RESET);
         }
 
         return columns.toArray(new Column[0]);
     }
 
-    public Map<String, String> getAllForeignKeys(String tableName) {
-        Map<String, String> foreignKeys = new HashMap<>();
+    public List<String> getPrimaryKeys(String tableName) {
+        List<String> primaryKeys = new ArrayList<>();
 
         try {
             DatabaseMetaData metaData = connection.getMetaData();
-            ResultSet keys = metaData.getImportedKeys(connection.getCatalog(), null, tableName.toUpperCase());
+            ResultSet keys = metaData.getPrimaryKeys(connection.getCatalog(), null, tableName.toUpperCase());
 
             while (keys.next()) {
-                String foreignKeyColumn = keys.getString("FKCOLUMN_NAME");
-                String primaryKeyColumn = keys.getString("PKCOLUMN_NAME");
-                String primaryTable = keys.getString("PKTABLE_NAME");
-                foreignKeys.put(foreignKeyColumn, primaryTable + "." + primaryKeyColumn);
+                primaryKeys.add(keys.getString("COLUMN_NAME"));
             }
-
         } catch (SQLException e) {
-            System.err.println("Error al obtener claves foráneas: " + e.getMessage());
+            throw new RuntimeException(AppConsoleStyle.RED
+                    + "[ERROR] No se pudo obtener la PK de la tabla " + tableName + ".\n(Detalle): "
+                    + e.getMessage() + AppConsoleStyle.RESET);
         }
-        return foreignKeys;
+
+        return primaryKeys;
     }
 
     public int[] getPKFromFTWithoutInnerConnection(Object data, String tableName, String pk, String columnName) {
@@ -156,8 +128,9 @@ public class DataBaseConnection {
             return returnValue;
 
         } catch (SQLException e) {
-            System.out.println(e.getMessage());
-            return null;
+            throw new RuntimeException(AppConsoleStyle.RED
+                    + "[ERROR] No se pudo obtener la PK para la inserción de la FK.\n(Detalle): "
+                    + e.getMessage() + AppConsoleStyle.RESET);
         }
     }
 
@@ -188,8 +161,9 @@ public class DataBaseConnection {
             return returnValue;
 
         } catch (SQLException e) {
-            System.out.println(e.getMessage());
-            return null;
+            throw new RuntimeException(AppConsoleStyle.RED
+                    + "[ERROR] No se pudo obtener la PK para la inserción de la FK.\n(Detalle): "
+                    + e.getMessage() + AppConsoleStyle.RESET);
         }
     }
 
@@ -200,8 +174,9 @@ public class DataBaseConnection {
 
             return (stmt.executeUpdate(SQL + codeToIncrease)) != 0;
         } catch (SQLException e) {
-            System.out.println(e.getMessage());
-            return false;
+            throw new RuntimeException(AppConsoleStyle.RED
+                    + "[ERROR] No se pudo actualizar el registro en la tabla CODIGOS.\n(Detalle): "
+                    + e + AppConsoleStyle.RESET);
         }
     }
 
@@ -223,8 +198,9 @@ public class DataBaseConnection {
             return returnValue;
 
         } catch (SQLException e) {
-            System.out.println(e.getMessage());
-            return null;
+            throw new RuntimeException(AppConsoleStyle.RED
+                    + "[ERROR] No se pudo obtener el incremento de la tabla CODIGOS.\n(Detalle): "
+                    + e.getMessage() + AppConsoleStyle.RESET);
         }
     }
 
@@ -254,7 +230,9 @@ public class DataBaseConnection {
         try (Statement statement = connection.createStatement()) {
             statement.executeUpdate(SQL.toString());
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException(AppConsoleStyle.RED
+                    + "[ERROR] No se pudo insertar el nuevo registro en la tabla"
+                    + tableName + "\n(Detalle): " + e.getMessage() + AppConsoleStyle.RESET);
         }
 
     }
@@ -285,7 +263,9 @@ public class DataBaseConnection {
         try (Statement statement = connection.createStatement()){
             statement.executeUpdate(SQL.toString());
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException(AppConsoleStyle.RED
+                    + "[ERROR] No se pudo actualizar el registro en la tabla"
+                    + tableName + "\n(Detalle): " + e.getMessage() + AppConsoleStyle.RESET);
         }
 
 
@@ -321,10 +301,11 @@ public class DataBaseConnection {
                 return false;
             }
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException(AppConsoleStyle.RED
+                    + "[ERROR] No se pudo ver si el registro ya existe en la tabla"
+                    + tableName + "\n(Detalle): " + e.getMessage() + AppConsoleStyle.RESET);
         }
     }
-
 
 
     private void addInStringBuilder(StringBuilder sql, Object[] value) {

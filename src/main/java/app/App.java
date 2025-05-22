@@ -1,6 +1,5 @@
 package app;
 
-import domain.FilesSetterController;
 import domain.MainController;
 
 import java.util.Arrays;
@@ -11,15 +10,14 @@ public class App {
     private final AppState STATE;
     private final Scanner SCANNER;
 
-    private final int[] CHOOSABLE_OPTIONS = new int[] { 1, 2, 3 };
+    private final int[] CHOOSABLE_OPTIONS = new int[] { 1, 2 };
 
     private final String MENU_PROMPT = """
             ----------------------------------------------------------------
                                           Menú
             ----------------------------------------------------------------
-            1 > Crear el archivo config.json y el Excel correspondiente
-            2 > Insertar Excel en la base de datos
-            3 > Salir
+            1 > Insertar Excel en la Base de Datos
+            2 > Salir
 
             ~>""";
 
@@ -30,7 +28,7 @@ public class App {
             %s""";
 
     private final String ERROR_PROMPT = """
-            [ERROR] No ha introducido una opción válida prueba [1,2,3]
+            [ERROR] No ha introducido una opción válida prueba [1,2]
             ~>""";
 
     public App(AppConfig config, AppState state) {
@@ -40,13 +38,13 @@ public class App {
         System.out.printf(MAIN_PROMPT, MENU_PROMPT);
         int option = 0;
 
-        while (option != 3) {
-            if (option == 1 || option == 2) System.out.print(MENU_PROMPT);
+        while (option != 2) {
+            if (option == 1) System.out.print(MENU_PROMPT);
             try {
-                switch (option = appPath(SCANNER.nextLine())) {
-                    case 1 -> new FilesSetterController(STATE, CONFIG, SCANNER);
-                    case 2 -> new MainController(STATE, CONFIG);
-                    default -> System.out.println("-- SALIENDO DEL PROGRAMA --");
+                if ((option = appPath(SCANNER.nextLine())) == 1) {
+                    new MainController(STATE, CONFIG);
+                } else {
+                    System.out.println("-- SALIENDO DEL PROGRAMA --");
                 }
 
             } catch (NumberFormatException e) {

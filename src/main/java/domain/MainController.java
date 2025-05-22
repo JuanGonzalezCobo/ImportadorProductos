@@ -2,7 +2,9 @@ package domain;
 
 import app.App;
 import app.AppConfig;
+import app.AppConsoleStyle;
 import app.AppState;
+import app.threads.ProgressBar;
 import data.model.Data;
 import data.model.IncreaseData;
 import data.model.TableAndColumnNameExcelData;
@@ -69,12 +71,11 @@ public class MainController {
 
         pkPerTable = getPK();
         mainInsertInDB();
-        System.out.println("[STATUS] Se ha finalizado el proceso");
         DB_CONNECTION.closeConnection();
         EXCEL_FILE_MANAGER.closeStreamsFromEstructuralExcelFile();
         EXCEL_FILE_MANAGER.closeStreamsFromDataExcelFile();
         try {
-            Thread.sleep(1000);
+            Thread.sleep(2000);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
@@ -99,6 +100,11 @@ public class MainController {
 
         String tableName = null;                                                                                                     // STRING, NOMBRE DE LA TABLA POR COLUMNA
         int tableNumber = 0;
+
+        int loopNumber = 0;
+        int maxProgress = REPOSITORY.getDATA_FROM_EXCEL().size();
+        ProgressBar progressBar = new ProgressBar(maxProgress);
+
 
         while ((dataRow = REPOSITORY.getDATA_FROM_EXCEL().poll()) != null) {
 
@@ -214,7 +220,10 @@ public class MainController {
             if (!DATA_TO_INSERT_INTO_DB.get(tableName).isEmpty()) {
                 updateOrCreateRegistryInDB(tableName, updateConfig, tableConfig, dataPerTableConfig);
             }
+
+            progressBar.refresh(loopNumber++);
         }
+        progressBar.refresh(loopNumber + 1);
     }
 
     private Map<String, List<String>> getPK() {
