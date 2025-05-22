@@ -8,7 +8,10 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.sql.Types;
 import java.util.*;
 
@@ -18,8 +21,7 @@ public class ExcelFileManager {
     //* EXCEL FILES NAMES                                                     *
     //*************************************************************************
 
-    public final String ESTRUCTURE_EXCEL_FILE = "estructura\\estructura.xlsx";
-    private String DATA_EXCEL_FILE;
+    private final String ESTRUCTURE_EXCEL_FILE = "configuracion\\estructura.xlsx";
 
     private String getFileURL() {
         JFileChooser fileChooser = new JFileChooser(new File("").getAbsolutePath());
@@ -32,10 +34,14 @@ public class ExcelFileManager {
         fileChooser.setMultiSelectionEnabled(false);
 
         if (returnVal == JFileChooser.APPROVE_OPTION) {
-            DATA_EXCEL_FILE = fileChooser.getSelectedFile().getAbsolutePath();
             return fileChooser.getSelectedFile().getAbsolutePath();
         } else {
-            System.out.println(AppConsoleStyle.RED + "[ERROR] No se seleccionó el archivo" + AppConsoleStyle.RESET);
+            System.out.println(AppConsoleStyle.RED + "\n[ERROR] No se seleccionó el archivo" + AppConsoleStyle.RESET);
+            try {
+                Thread.sleep(3000);
+            } catch (InterruptedException q) {
+                System.out.print(" ");
+            }
             System.exit(1);
             return null;
         }
@@ -46,7 +52,7 @@ public class ExcelFileManager {
     //*************************************************************************
 
     @Getter
-    public final FileInputStream FIS_ESTRUCTURAL_EXCEL_FILE;
+    public FileInputStream FIS_ESTRUCTURAL_EXCEL_FILE;
 
     @Getter
     public FileInputStream FIS_DATA_EXCEL_FILE;
@@ -127,7 +133,15 @@ public class ExcelFileManager {
         try {
             FIS_ESTRUCTURAL_EXCEL_FILE = new FileInputStream(ESTRUCTURE_EXCEL_FILE);
         } catch (FileNotFoundException e) {
-            throw new RuntimeException(e);
+            System.out.println(AppConsoleStyle.RED
+                    + "[ERROR] No se encontró el archivo " + ESTRUCTURE_EXCEL_FILE
+                    + ".\n(Detalle): " + e.getMessage() + AppConsoleStyle.RESET);
+            try {
+                Thread.sleep(4000);
+            } catch (InterruptedException q) {
+                System.out.print(" ");
+            }
+            System.exit(2);
         }
     }
 
@@ -138,7 +152,12 @@ public class ExcelFileManager {
     public List<List<Object[]>> readHeaderFromFile(boolean isEstructuralExcel) {
         XSSFWorkbook wb = null;
         try {
-            if (!isEstructuralExcel) FIS_DATA_EXCEL_FILE = new FileInputStream(getFileURL());
+            if (!isEstructuralExcel) {
+                System.out.print(AppConsoleStyle.YELLOW
+                        + "> Seleccione el archivo de datos en la pantalla emergente\r"
+                        + AppConsoleStyle.RESET);
+                FIS_DATA_EXCEL_FILE = new FileInputStream(getFileURL());
+            }
             if (isEstructuralExcel) {
                 wbEstructureExcel = new XSSFWorkbook(FIS_ESTRUCTURAL_EXCEL_FILE);
                 wb = wbEstructureExcel;
@@ -147,8 +166,15 @@ public class ExcelFileManager {
                 wb = wbDataExcel;
             }
         } catch (IOException e) {
-            System.out.println("[ERROR] No se pudo leer el archivo de estructura o datos");
-            System.exit(1);
+            System.out.println(AppConsoleStyle.RED
+                    + "[ERROR] No se pudo leer el Excel " + (isEstructuralExcel ? "de Estructura" : "de Datos")
+                    + ".\n(Detalle): " + e.getMessage() + AppConsoleStyle.RESET);
+            try {
+                Thread.sleep(4000);
+            } catch (InterruptedException q) {
+                System.out.print(" ");
+            }
+            System.exit(2);
         }
 
         Sheet sheet = wb.getSheetAt(0);
@@ -258,38 +284,6 @@ public class ExcelFileManager {
             insertValue(cellToInsert, entry.getValue());
         }
     }
-
-
-    public Void writeFile(String fileName, String[][] header) {
-        try (FileOutputStream fos = new FileOutputStream(fileName.concat(".xlsx"));
-             XSSFWorkbook wb = new XSSFWorkbook()) {
-            setColumnHeaderStyle(wb);
-
-            Sheet sheet = wb.createSheet();
-
-            for (int i = 0; i < header.length; i++) {
-                Row row = sheet.createRow(i + 1);
-                for (int j = 0; j < header[0].length; j++) {
-                    Cell cell = row.createCell(j);
-                    if (i == 2) {
-                        cell.setCellStyle(HEADER_STYLE);
-                    }
-                    cell.setCellValue(header[i][j]);
-                }
-            }
-
-            wb.write(fos);
-
-        } catch (FileNotFoundException e) {
-            System.out.println(AppConsoleStyle.RED
-                    + "[ERROR] No se pudo encontrar el archivo o está abierto con otro programa"
-                    + AppConsoleStyle.RESET);
-        } catch (IOException e) {
-            System.out.println(AppConsoleStyle.RED + "[ERROR] No se pudo escribir el archivo" + AppConsoleStyle.RESET);
-        }
-        return null;
-    }
-
 
     private void getCellTypeAndData(Row row,
                                     List<Integer> columnsWithHeader,

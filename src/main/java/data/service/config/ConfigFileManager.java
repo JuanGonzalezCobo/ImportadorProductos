@@ -1,18 +1,22 @@
 package data.service.config;
 
+import app.AppConsoleStyle;
 import com.google.gson.*;
-import data.model.*;
-import data.service.db.model.Column;
+import data.model.DbData;
+import data.model.IncreaseData;
+import data.model.TableData;
+import data.model.UpdateData;
 
-import java.io.*;
-import java.util.ArrayList;
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 public class ConfigFileManager {
 
-    private final String CONFIG_FILE_NAME = "config.json";
+    private final String CONFIG_FILE_NAME = "configuracion\\config.json";
 
     public Map<String, Object> loadConfig() {
         Map<String, Object> configData = new HashMap<>();
@@ -43,53 +47,27 @@ public class ConfigFileManager {
                 json.append(line);
             }
         } catch (FileNotFoundException e) {
-            System.out.println("[ERROR] No se pudo encontrar el archivo: " + CONFIG_FILE_NAME);
+            System.out.println(AppConsoleStyle.RED
+                    + "[ERROR] No se encontró el archivo " + CONFIG_FILE_NAME
+                    + ".\n(Detalle): " + e.getMessage() + AppConsoleStyle.RESET);
+            try {
+                Thread.sleep(4000);
+            } catch (InterruptedException q) {
+                System.out.print(" ");
+            }
+            System.exit(2);
         } catch (IOException e) {
-            System.out.println("[ERROR] No se pudo leer el archivo: " + CONFIG_FILE_NAME);
+            System.out.println(AppConsoleStyle.RED
+                    + "[ERROR] No se pudo leer el archivo " + CONFIG_FILE_NAME
+                    + ".\n(Detalle): " + e.getMessage() + AppConsoleStyle.RESET);
+            try {
+                Thread.sleep(4000);
+            } catch (InterruptedException q) {
+                System.out.print(" ");
+            }
+            System.exit(2);
         }
 
         return json.toString();
-    }
-
-    public Void unloadConfig(DbData[] dataBaseConfig, IncreaseData[] increaseConfig, String tableName, Column[] columnData) {
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(CONFIG_FILE_NAME))) {
-            writer.write(createNewSection(dataBaseConfig, increaseConfig, tableName, columnData));
-        } catch (IOException e) {
-            throw new RuntimeException(e);  // TODO PONER BIEN EL ERROR
-        }
-        return null;
-    }
-
-    private String createNewSection(DbData[] dataBaseConfig, IncreaseData[] increaseConfig, String tableName, Column[] columnData) {
-        Gson gson = new GsonBuilder().setPrettyPrinting().create();
-
-        List<Section> sectionList = new ArrayList<>();
-
-        //Añado lo necesario para crear el config, solamente la configuración de la base de datos y los incrementos
-
-        sectionList.add(new Section("DbConfig", dataBaseConfig));
-        sectionList.add(new Section("Incrementos", increaseConfig));
-
-        List<Data> newData = new ArrayList<>();
-
-        for (Column column : columnData) {
-            newData.add(
-                    new Data(column.getColumnName(),
-                            ClassType.setClassType(Integer.parseInt(column.getType())),
-                            null
-                    )
-            );
-        }
-
-        sectionList
-                .add(new Section(
-                        "Tablas",
-                        new TableData[]{
-                                new TableData(tableName,
-                                        newData.toArray(Data[]::new))
-                        }
-                ));
-
-        return gson.toJson(sectionList.toArray(Section[]::new));
     }
 }

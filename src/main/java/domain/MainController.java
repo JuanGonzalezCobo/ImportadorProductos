@@ -64,20 +64,24 @@ public class MainController {
     }
 
     private void mainThread() {
-        REPOSITORY.setRepositoryData(EXCEL_FILE_MANAGER);
-        REPOSITORY.setDATA_FROM_EXCEL(
-                EXCEL_FILE_MANAGER
-                        .processOfGettingParsedDataFromEstructureFile(REPOSITORY.getDATA_FROM_DATA_EXCEL()));
+        try {
+            REPOSITORY.setRepositoryData(EXCEL_FILE_MANAGER);
+            REPOSITORY.setDATA_FROM_EXCEL(EXCEL_FILE_MANAGER
+                    .processOfGettingParsedDataFromEstructureFile(REPOSITORY.getDATA_FROM_DATA_EXCEL()));
 
-        pkPerTable = getPK();
-        mainInsertInDB();
-        DB_CONNECTION.closeConnection();
-        EXCEL_FILE_MANAGER.closeStreamsFromEstructuralExcelFile();
-        EXCEL_FILE_MANAGER.closeStreamsFromDataExcelFile();
+            pkPerTable = getPK();
+            mainInsertInDB();
+
+            DB_CONNECTION.closeConnection();
+            EXCEL_FILE_MANAGER.closeStreamsFromEstructuralExcelFile();
+            EXCEL_FILE_MANAGER.closeStreamsFromDataExcelFile();
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
         try {
             Thread.sleep(2000);
         } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+            System.out.print(" ");
         }
         App.clearConsole();
 
@@ -147,7 +151,6 @@ public class MainController {
                         && !DATA_TO_INSERT_INTO_DB.get(lastestTableName).isEmpty()) {
 
                     updateOrCreateRegistryInDB(lastestTableName, updateConfig, tableConfig, dataPerTableConfig);
-
                 }
 
                 Object[] infoToInsert;
@@ -187,7 +190,6 @@ public class MainController {
                     );
                 }
 
-
                 //*************************************************
                 //*        INSERT INTO THE INSERTION MAP          *
                 //*************************************************
@@ -206,7 +208,9 @@ public class MainController {
                         dataPerTableConfig.put(tableName, modifiedList);
                     }
                 } catch (Exception e) {
-                    System.out.println("[ERROR] No se ha borrado de la configuración datos de la tabla principal");
+                    throw new RuntimeException(AppConsoleStyle.RED
+                            + "[ERROR] No se ha borrado de la configuración datos de la tabla "
+                            + tableName + AppConsoleStyle.RESET);
                 }
 
             }
@@ -258,8 +262,9 @@ public class MainController {
                     .orElse(null);
 
             if (tableAndColumnNameExcelDataFromInnerConnection == null) {
-                System.out.println("[ERROR] No se ha encontrado la tabla para la columna " + column.getColumnName());
-                System.exit(1);
+                throw new RuntimeException(AppConsoleStyle.RED
+                        + "[ERROR] No se ha encontrado la tabla para la columna "
+                        + column.getColumnName() + AppConsoleStyle.RESET);
             }
 
                 Object[] dataFromExcel = DATA_TO_INSERT_INTO_DB
@@ -374,9 +379,10 @@ public class MainController {
                 );
 
             } else {                                                                                                            // [ELSE] THERE'S NO DATA FROM IT, ERROR IS THROWN, BAD ORDER IN THE EXCEL FILE
-                        System.out.println("[ERROR] Revise el orden del excel porque" +
-                                " no se pudo obtener el dato de la columna" + columnName);
-                        System.exit(1);
+                System.out.println(AppConsoleStyle.RED
+                        + "[ERROR] Revise el orden del excel porque no se pudo obtener el dato de la columna "
+                        + columnName + AppConsoleStyle.RESET);
+                System.exit(1);
             }
 
             if (foreignKeyDataFromConfig != null && !foreignKeyDataFromConfig.isEmpty()) {                                      // IT ERASE IT FROM CONFIG FILE LIST DATA
@@ -397,12 +403,13 @@ public class MainController {
                 eraseFromConfigList(foreignKeyDataFromConfig, foreignKeyInfo[2]);                                           // IT TRIES TO ERASE IT FROM CONFIG FILE LIST DATA
             }
         } catch (Exception e) {
-            System.out.println("[ERROR]: No se eliminó ningún valor de la lista para" +
-                    " la creación de un nuevo registro en tabla foránea");
+            throw new RuntimeException(AppConsoleStyle.RED
+                    + "[ERROR]: No se eliminó ningún valor de la lista para la creación de un nuevo registro en tabla foránea"
+                    + AppConsoleStyle.RESET);
         }
 
         if (foreignKeyDataFromConfig != null && !foreignKeyDataFromConfig.isEmpty()) {
-            addLastInfoFromConfigList(FOREIGN_KEY_INSERT_NEW_REGISTRY, foreignKeyDataFromConfig);                               // ADDS THE DATA FROM CONFIG TABLE THAT WASN'T DELETED
+            addLastInfoFromConfigList(FOREIGN_KEY_INSERT_NEW_REGISTRY, foreignKeyDataFromConfig);                           // ADDS THE DATA FROM CONFIG TABLE THAT WASN'T DELETED
         }
 
         createNewRegistry(foreignKeyInfo[0], FOREIGN_KEY_INSERT_NEW_REGISTRY);                                              // CREATES NEW REGISTRY
@@ -412,18 +419,15 @@ public class MainController {
                                             Map<String, String[]> updateConfig,
                                             Map<String, Data[]> tableConfig,
                                             Map<String, List<Data>> dataPerTableConfig) {
-        try {
-            if (dataPerTableConfig.get(tableName) != null && !dataPerTableConfig.get(tableName).isEmpty()) {
-                Map<String, Object[]> dataToInsertAux = DATA_TO_INSERT_INTO_DB.get(tableName);
-                addLastInfoFromConfigList(dataToInsertAux, dataPerTableConfig.get(tableName));
-                DATA_TO_INSERT_INTO_DB.put(tableName, dataToInsertAux);
-                dataPerTableConfig.remove(tableName);
-                // RENOVATE THE DATA FROM CONFIG IN CASE THERE ARE MORE THAN ONE KIND OF TABLE IN THE EXCEL
-                dataPerTableConfig.put(
-                        tableName,
-                        Arrays.stream(tableConfig.get(tableName)).toList()
-                );
-            }
+
+        if (dataPerTableConfig.get(tableName) != null && !dataPerTableConfig.get(tableName).isEmpty()) {
+            Map<String, Object[]> dataToInsertAux = DATA_TO_INSERT_INTO_DB.get(tableName);
+            addLastInfoFromConfigList(dataToInsertAux, dataPerTableConfig.get(tableName));
+            DATA_TO_INSERT_INTO_DB.put(tableName, dataToInsertAux);
+            dataPerTableConfig.remove(tableName);
+            // RENOVATE THE DATA FROM CONFIG IN CASE THERE ARE MORE THAN ONE KIND OF TABLE IN THE EXCEL
+            dataPerTableConfig.put(tableName, Arrays.stream(tableConfig.get(tableName)).toList());
+        }
 
             Map<String, Object[]> mapOfUpdatableColumns = new LinkedHashMap<>();
             String[] updateColumns;
@@ -441,10 +445,6 @@ public class MainController {
             else
                 createNewRegistry(tableName, DATA_TO_INSERT_INTO_DB.get(tableName));
 
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
-            System.exit(1);
-        }
     }
 
     private void updateRegistry(String tableName,

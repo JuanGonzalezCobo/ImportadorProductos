@@ -31,11 +31,18 @@ public class DataBaseConnection {
 
             con = DriverManager
                     .getConnection(url.concat(database), properties);
-            System.out.println("[STATUS] Conexión exitosa a la base de datos.");
+            System.out.println(AppConsoleStyle.GREEN
+                    + "[OK] Conexión exitosa a la base de datos."
+                    + AppConsoleStyle.RESET);
         } catch (SQLException e) {
             System.out.println(AppConsoleStyle.RED
                     + "[ERROR] No se conectó con la base de datos."
                     + "\n(Detalle): " + e.getMessage() + AppConsoleStyle.RESET);
+            try {
+                Thread.sleep(4000);
+            } catch (InterruptedException q) {
+                System.out.print(" ");
+            }
             System.exit(1);
         }
         return con;
@@ -48,6 +55,11 @@ public class DataBaseConnection {
             System.out.println(AppConsoleStyle.RED
                     + "[ERROR] No se desconectó con la base de datos."
                     + "\n(Detalle): " + e.getMessage() + AppConsoleStyle.RESET);
+            try {
+                Thread.sleep(4000);
+            } catch (InterruptedException q) {
+                System.out.print(" ");
+            }
             System.exit(1);
         }
     }

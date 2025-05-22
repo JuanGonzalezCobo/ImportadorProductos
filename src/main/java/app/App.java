@@ -44,7 +44,7 @@ public class App {
                 if ((option = appPath(SCANNER.nextLine())) == 1) {
                     new MainController(STATE, CONFIG);
                 } else {
-                    System.out.println("-- SALIENDO DEL PROGRAMA --");
+                    System.out.println("== SALIENDO DEL PROGRAMA ==");
                 }
 
             } catch (NumberFormatException e) {
