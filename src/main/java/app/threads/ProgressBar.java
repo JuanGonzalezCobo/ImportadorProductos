@@ -13,7 +13,7 @@ public class ProgressBar {
         this.PROGRESS = 0;
     }
 
-    public void mostrarBarra() {
+    public void showBar() {
         double percentage = (double) PROGRESS / MAX * 100;
         int fullCharacters = (int) (WIDTH * PROGRESS / MAX);
 
@@ -36,7 +36,7 @@ public class ProgressBar {
 
     public void refresh(int newProgress) {
         this.PROGRESS = Math.min(newProgress, MAX);
-        mostrarBarra();
+        showBar();
     }
 
 }

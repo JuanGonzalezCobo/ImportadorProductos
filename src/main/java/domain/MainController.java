@@ -34,11 +34,8 @@ public class MainController {
         this.CONFIG_FILE_MANAGER = new ConfigFileManager();
         this.EXCEL_FILE_MANAGER = new ExcelFileManager();
 
-        App.clearConsole();
-        System.out.println("""
-                ----------------------------------------------------------------
-                         INSERCIÓN EN BASE DE DATOS A PARTIR DE EXCEL
-                ----------------------------------------------------------------""");
+        AppConsoleStyle.clearConsole();
+        System.out.println(AppConsoleStyle.MAIN_CONTROLLER_INIT_PROMPT);
 
         this.REPOSITORY = new Repository(CONFIG_FILE_MANAGER, EXCEL_FILE_MANAGER);
 
@@ -83,7 +80,7 @@ public class MainController {
         } catch (InterruptedException e) {
             System.out.print(" ");
         }
-        App.clearConsole();
+        AppConsoleStyle.clearConsole();
 
     }
 

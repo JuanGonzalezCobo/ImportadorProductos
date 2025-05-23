@@ -154,7 +154,7 @@ public class ExcelFileManager {
         try {
             if (!isEstructuralExcel) {
                 System.out.print(AppConsoleStyle.YELLOW
-                        + "> Seleccione el archivo de datos en la pantalla emergente\r"
+                        + "> Seleccione el archivo de datos en la pantalla emergente"
                         + AppConsoleStyle.RESET);
                 FIS_DATA_EXCEL_FILE = new FileInputStream(getFileURL());
             }
@@ -249,16 +249,6 @@ public class ExcelFileManager {
         return dataFromFile;
     }
 
-    private List<Object[]> readEstructuralFile(XSSFWorkbook wb, FormulaEvaluator evaluator) {
-        List<Object[]> rowData = new ArrayList<>();
-        Sheet sheet = wb.getSheetAt(0);
-        Row row = sheet.getRow(estructureHeadersRow + 1);
-
-        getCellTypeAndData(row, estructureExcelColumnsWithHeader, rowData, evaluator);
-
-        return rowData;
-    }
-
     private void insertDataInEstructureFile(Sheet sheet, Map<TableAndColumnNameExcelData, Object[]> dataToInsert) {
         //First row is the header
         Row row = sheet.getRow(estructureHeadersRow);
@@ -283,6 +273,16 @@ public class ExcelFileManager {
             Cell cellToInsert = rowToInsert.createCell(columnToInsert);
             insertValue(cellToInsert, entry.getValue());
         }
+    }
+
+    private List<Object[]> readEstructuralFile(XSSFWorkbook wb, FormulaEvaluator evaluator) {
+        List<Object[]> rowData = new ArrayList<>();
+        Sheet sheet = wb.getSheetAt(0);
+        Row row = sheet.getRow(estructureHeadersRow + 1);
+
+        getCellTypeAndData(row, estructureExcelColumnsWithHeader, rowData, evaluator);
+
+        return rowData;
     }
 
     private void getCellTypeAndData(Row row,
